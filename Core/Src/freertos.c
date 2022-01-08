@@ -136,7 +136,7 @@ parameter_t I_Present_Value_Max={0.0,0.0,250.0,1.0,"IPresentValMax","A"};
 
 parameter_t *pVar=&U_Set;
 parameter_t *pEditValue;
-
+extern float Temp[MAXDEVICES_ON_THE_BUS];
 //Параметры для сохранения
 
 float* Par1[]={&Gas_Before.value,&Gas_After.value,&Wire_On.value,&Welding_Off.value};
