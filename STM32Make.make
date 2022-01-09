@@ -37,7 +37,6 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 Core/Src/MicroMenu.c \
-Core/Src/OneWire.c \
 Core/Src/adc.c \
 Core/Src/crc.c \
 Core/Src/dma.c \
@@ -49,6 +48,7 @@ Core/Src/i2c.c \
 Core/Src/lcd.c \
 Core/Src/main.c \
 Core/Src/mystring.c \
+Core/Src/onewire.c \
 Core/Src/parameter.c \
 Core/Src/stm32f1xx_hal_msp.c \
 Core/Src/stm32f1xx_hal_timebase_tim.c \

@@ -26,7 +26,7 @@ HAL_StatusTypeDef readEeprom(uint16_t memAddr, float *data,uint16_t len)
 	for (;;)
 	{ // wait...
 		status = HAL_I2C_IsDeviceReady(&hi2c2, devAddr, 1, HAL_MAX_DELAY);
-		if (status == HAL_OK)
+		//if (status == HAL_OK)
 			break;
 	}
 
@@ -34,7 +34,7 @@ HAL_StatusTypeDef readEeprom(uint16_t memAddr, float *data,uint16_t len)
 	for (;;)
 		{ // wait...
 			status = HAL_I2C_IsDeviceReady(&hi2c2, devAddr, 1, HAL_MAX_DELAY);
-			if (status == HAL_OK)
+			//if (status == HAL_OK)
 				break;
 		}
 
