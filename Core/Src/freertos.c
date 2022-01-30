@@ -36,7 +36,7 @@
 #include "parameter.h"
 #include "eeprom.h"
 #include "dsp.h"
-#include "onewire.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -254,14 +254,8 @@ void MX_FREERTOS_Init(void) {
      HAL_TIM_PWM_Start_IT(&htim3, TIM_CHANNEL_4);
      HAL_TIM_Base_Start_IT(&htim4);
      HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1);
-    
      HAL_Delay(10);
-	 OW_Reset();
-	 HAL_Delay(100);
-	 while(1)
-	 {
-
-	 }
+	
   /* USER CODE END Init */
   /* Create the mutex(es) */
   /* definition and creation of uSetMutex */

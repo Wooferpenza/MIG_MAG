@@ -48,7 +48,6 @@ Core/Src/i2c.c \
 Core/Src/lcd.c \
 Core/Src/main.c \
 Core/Src/mystring.c \
-Core/Src/onewire.c \
 Core/Src/parameter.c \
 Core/Src/stm32f1xx_hal_msp.c \
 Core/Src/stm32f1xx_hal_timebase_tim.c \
