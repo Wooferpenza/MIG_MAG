@@ -10,16 +10,21 @@
 
 typedef struct
 {
-	bool Curr:1;
-	bool Old:1;
+	bool state:1;
+	bool oldState:1;
 }M_Type;
 typedef struct
 {
-	uint16_t Time;		
-	uint16_t Time_Old;
-    bool Curr:1;
-    bool Old:1;
+	uint32_t time;		
+	uint32_t timeBegin;
+    bool curr:1;
+    bool old:1;
+	bool enableOld
 }T_Type;
 
-void TMR(T_Type *timer,uint16_t time);
+bool LD(M_Type);
+bool LDI(M_Type);
+bool LDP(M_Type);
+bool LDF(M_Type);
+bool TMR(T_Type *timer,bool enable, uint16_t time);
 #endif

@@ -37,6 +37,7 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 Core/Src/MicroMenu.c \
+Core/Src/PLC.c \
 Core/Src/adc.c \
 Core/Src/crc.c \
 Core/Src/dma.c \

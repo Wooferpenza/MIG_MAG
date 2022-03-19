@@ -1,31 +1,50 @@
 #include "PLC.h"
-void TMR(T_Type *timer,uint16_t time)
+#include "FreeRTOS.h"
+bool LD(M_Type m)
 {
-    uint16_t Time_T=0;
-	uint16_t Time_ms_Old=timer->Time_Old;
-	// if (Time_ms>=Time_ms_Old)
-	// {
-	// 	Time_T=Time_ms-Time_ms_Old;
-	// }
-	// else
-	// {
-	// 	Time_T=TIMER_MAX-Time_ms_Old+Time_ms;
-	// }
-	// if (Read())
-	// {
-	// 	T[Tm].Time+=Time_T;
-	// 	u16 Set_Time;
-	// 	Set_Time=Detect_D(VM_PC+1);
-	// 	if (T[Tm].Time>=(Set_Time*100))
-	// 	{
-	// 		M[Tm+T_BEGIN].Curr=true;
-	// 		T[Tm].Time-=Time_T;
-	// 	}
-	// }
-	// else
-	// {
-	// 	M[Tm+T_BEGIN].Curr=false;
-	// 	T[Tm].Time=0;
-	// }
-	timer->Time_Old=Time_ms;
+	return m.state;
+}
+bool LDI(M_Type m)
+{
+	return !m.state;
+}
+bool LDP( M_Type m)
+{
+	return m.state&&!m.oldState;
+}
+bool LDF( M_Type m)
+{
+	return !m.state&&m.oldState;
+}
+bool TMR(T_Type *timer,bool enable,uint16_t time)
+{
+  if (enable)
+  {
+	  uint32_t curretTime=osKernelSysTick();
+	  uint32_t deltaTime=0;
+	  if (!timer->enableOld)
+	  {
+		timer->timeBegin=curretTime;
+		timer->curr=false;
+	  }
+	  if (curretTime>=timer->timeBegin)
+	  {
+		  deltaTime=curretTime-timer->timeBegin;
+	  }
+	  else
+	  {
+		  deltaTime=4294967296+curretTime-timer->timeBegin;
+	  }
+	  if (deltaTime>=time)
+	  {
+		timer->curr=true;	  
+	  }
+  }
+  else
+  {
+	  timer->curr=false;
+  }
+  timer->enableOld=enable;
+  timer->old=timer->curr;
+  return timer->curr;
 }

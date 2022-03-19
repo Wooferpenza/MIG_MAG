@@ -36,7 +36,7 @@
 #include "parameter.h"
 #include "eeprom.h"
 #include "dsp.h"
-
+#include "PLC.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,7 +61,21 @@ typedef struct
   Key_State keyState;
   int32_t count;
 } keyInfo_t;
+typedef struct 
+{
+bool state;
+bool oldState;
+} keyState_t;
 
+typedef struct 
+{
+M_Type  wireDown;
+M_Type  wireUp;
+M_Type  gasTest;
+M_Type  menu;
+M_Type  ok;
+M_Type  start;
+} key_type;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -72,7 +86,7 @@ typedef struct
 #define WELDING_RUN(state)	HAL_GPIO_WritePin(OUT_RUN_GPIO_Port, OUT_RUN_Pin, !state)
 #define IS_WELDING_RUN		HAL_GPIO_ReadPin(OUT_RUN_GPIO_Port, OUT_RUN_Pin)
 
-#define GAS_RUN(state)		HAL_GPIO_WritePin(OUT_GAS_GPIO_Port, OUT_GAS_Pin, state)
+#define GAS_RUN(state)		HAL_GPIO_WritePin(OUT_GAS_GPIO_Port, OUT_GAS_Pin,  (GPIO_PinState) state)
 #define IS_GAS_RUN		HAL_GPIO_ReadPin(OUT_GAS_GPIO_Port, OUT_GAS_Pin)
 
 #define WIRE_RUN(state)		HAL_GPIO_WritePin(OUT_Wire_Run_GPIO_Port, OUT_Wire_Run_Pin, state)
@@ -90,6 +104,8 @@ typedef struct
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 void valueEditRun(void);
+key_type key_; // состояние кнопок
+key_type keyPLC;
 volatile uint16_t adc[4];
 volatile uint16_t adc0Filter=0;
 volatile uint16_t adc1Filter=0;
@@ -331,7 +347,7 @@ void StartDisplayTask(void const * argument)
     float iPresentDisplay=0;
   for(;;)
   {
-	    osMutexWait(uSetMutexHandle, osWaitForever);
+	   	    osMutexWait(uSetMutexHandle, osWaitForever);
         	uSet=U_Set.value;  vSet=V_Set.value; iSet=I_Set.value;
         osMutexRelease(uSetMutexHandle);
         if (!HAL_GPIO_ReadPin (IN_Start_Btn_GPIO_Port, IN_Start_Btn_Pin))
@@ -387,6 +403,43 @@ void StartDisplayTask(void const * argument)
                  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, VSetCode);
            
 			
+			Lcd_cursor (&lcd, 0, 13);
+			if (IS_GAS_RUN)
+			{
+				Lcd_string (&lcd, "G");
+			}
+			else
+			{
+				Lcd_string (&lcd, " ");
+			}
+			Lcd_cursor (&lcd, 0, 15);
+			if (!IS_WELDING_RUN)
+			{
+				Lcd_string (&lcd, "A");
+			}
+			else
+			{
+				Lcd_string (&lcd, " ");
+			}
+			Lcd_cursor (&lcd, 1, 13);
+			if (IS_WIRE_RUN)
+			{
+				Lcd_string (&lcd, "W");
+				if (IS_WIRE_DIR)
+				{
+					Lcd_string (&lcd, "U");
+				}
+				else
+				{
+					Lcd_string (&lcd, "D");
+				}
+			}
+			else
+			{
+				Lcd_string (&lcd, "  ");
+			}
+			
+			
             osDelay (100);
   }
   /* USER CODE END StartDisplayTask */
@@ -404,16 +457,7 @@ void StartControlTask(void const * argument)
   /* USER CODE BEGIN StartControlTask */
 
 	 HAL_GPIO_WritePin (OUT_LCD_LED_GPIO_Port, OUT_LCD_LED_Pin, GPIO_PIN_SET);
-	 keyInfo_t key;
-	bool cicle = false;
-	bool okBtn = false;
-	bool menuBtn = false;
-	bool startBtn = false;
-	bool gasBtn = false;
-	bool wireUpBtn = false;
-	bool wireDownBtn = false;
-	uint8_t keyCount = 0;
-	float readPar[]={0.0,0.0,0.0,0.0};
+	 float readPar[]={0.0,0.0,0.0,0.0};
 	if (readEeprom(0,readPar,sizeof(readPar) )==HAL_OK)
 		    {
 		            Lcd_clear (&lcd);
@@ -484,16 +528,20 @@ void StartControlTask(void const * argument)
 				    }
 
 	osThreadResume(displayTaskHandle);
+	M_Type cicle, gasCicle, weldingCicle, wireCicle;
+	T_Type gasBefore_T,gasAfter_T;
 	/* Infinite loop */
 	for (;;)
 	{
-		xQueueReceive(keyQueueHandle, &key, portMAX_DELAY);
-		switch (key.keyCode)
-		{
-		case IN_Ok_Btn_Code:
-			if (key.keyState == Press)
+		keyPLC.ok.state=key_.ok.state;
+		keyPLC.wireDown.state=key_.wireDown.state;
+		keyPLC.wireUp.state=key_.wireUp.state;
+		keyPLC.gasTest.state=key_.gasTest.state;
+		keyPLC.menu.state=key_.menu.state;
+		keyPLC.start.state=key_.start.state;
+
+		if (LDP(keyPLC.ok))
 			{
-				okBtn = true;
 				if (pVar == &U_Set)
 					pVar = &V_Set;
 				else if (pVar == &V_Set)
@@ -501,106 +549,29 @@ void StartControlTask(void const * argument)
 				else if (pVar == &I_Set)
 					pVar = &U_Set;
 			}
-			if (key.keyState == Release)
-			{
-				okBtn = false;
-			}
+		
+		// case Enc_Code:
+		// 	osMutexWait(uSetMutexHandle, osWaitForever);
+		// 	inc(pVar, key.count,1.0);
+		// 	osMutexRelease(uSetMutexHandle);
+		// 	break;
+		wireCicle.state=TMR(&gasBefore_T,LD(keyPLC.start),Gas_Before.value*1000.0);
+		weldingCicle.state=LD(wireCicle);
+		gasCicle.state=(LD(keyPLC.start)||LD(weldingCicle)||LD(gasCicle))&&!TMR(&gasAfter_T,LDI(weldingCicle),Gas_After.value*1000.0);
 
-			if (key.keyState == Hold)
-			{
-				Lcd_init(&lcd);
-			}
-			break;
-		case Enc_Code:
-			osMutexWait(uSetMutexHandle, osWaitForever);
-			inc(pVar, key.count,1.0);
-			osMutexRelease(uSetMutexHandle);
-			break;
-		case IN_Start_Btn_Code:
-			if (key.keyState == Press)
-			{
-				startBtn = true;
-				cicle = true;
-				GAS_RUN(ON);
-				osDelay((uint32_t) (Gas_Before.value * 1000.0));
-				WELDING_RUN(ON);
-				osDelay((uint32_t) (Wire_On.value * 1000.0));
-				WIRE_RUN(ON);
-				WIRE_DIR(ON);
-			}
-			else if (key.keyState == Release)
-			{
-				WIRE_RUN(OFF);
-				WIRE_DIR(OFF);
-				osDelay((uint32_t) (Welding_Off.value * 1000.0));
-				WELDING_RUN(OFF);
-				osDelay((uint32_t) (Gas_After.value * 1000.0));
-				GAS_RUN(OFF);
-				startBtn = false;
-				cicle = false;
-			}
-			break;
+		GAS_RUN((LD(key_.gasTest) && LDI(gasCicle))||LD(gasCicle));
+		WIRE_RUN(((LD(key_.wireDown)||LD(key_.wireUp)) && LDI(gasCicle))||LD(wireCicle));
+		WIRE_DIR((LD(key_.wireDown) && LDI(gasCicle))||LD(wireCicle));
+		WELDING_RUN(LD(weldingCicle));
 
-		case IN_GasTest_Btn_Code:
-			if (key.keyState == Press)
-			{
-				gasBtn = true;
-				GAS_RUN(ON);
-			}
-			else if (key.keyState == Release)
-			{
-				gasBtn = false;
-				GAS_RUN(OFF);
-			}
-			break;
-
-		case IN_WireDown_Btn_Code:
-			if (key.keyState == Press)
-			{
-				wireDownBtn = true;
-				WIRE_RUN(ON);
-				WIRE_DIR(ON);
-			}
-			else if (key.keyState == Release)
-			{
-				wireDownBtn = false;
-				WIRE_RUN(OFF);
-				WIRE_DIR(OFF);
-			}
-			break;
-
-		case IN_WireUp_Btn_Code:
-			if (key.keyState == Press)
-			{
-				wireUpBtn = true;
-				WIRE_RUN(ON);
-
-			}
-			else if (key.keyState == Release)
-			{
-				wireUpBtn = false;
-				WIRE_RUN(OFF);
-
-			}
-			break;
-
-		case IN_Menu_Btn_Code:
-			if (key.keyState == Press)
-			{
-				Menu_Navigate(&Menu_1);
-				xQueueReset(keyQueueHandle);
-				taskENTER_CRITICAL();
-				osThreadSuspend(displayTaskHandle);
-				osThreadResume(menuControlHandle);
-				osThreadSuspend(controlTaskHandle);
-				taskEXIT_CRITICAL();
-
-			}
-			break;
-
-		default:
-			break;
-		}
+		keyPLC.ok.oldState=keyPLC.ok.state;
+		keyPLC.wireDown.oldState=keyPLC.wireDown.state;
+		keyPLC.wireUp.oldState=keyPLC.wireUp.state;
+		keyPLC.gasTest.oldState=keyPLC.gasTest.state;
+		keyPLC.menu.oldState=keyPLC.menu.state;
+		keyPLC.start.oldState=keyPLC.start.state;
+		osDelay (10);	
+	        
 	}
   /* USER CODE END StartControlTask */
 }
@@ -615,129 +586,18 @@ void StartControlTask(void const * argument)
 void StartKeyScanTask(void const * argument)
 {
   /* USER CODE BEGIN StartKeyScanTask */
-    GPIO_PinState oldPinState[6];
-    GPIO_PinState pinState[6];
-    uint_fast32_t count[6]={};
-    oldPinState[IN_WireDown_Btn_Code] = HAL_GPIO_ReadPin (IN_WireDown_Btn_GPIO_Port, IN_WireDown_Btn_Pin);
-    oldPinState[1] = HAL_GPIO_ReadPin (IN_WireUp_Btn_GPIO_Port,   IN_WireUp_Btn_Pin);
-    oldPinState[2] = HAL_GPIO_ReadPin (IN_GasTest_Btn_GPIO_Port,  IN_GasTest_Btn_Pin);
-    oldPinState[3] = HAL_GPIO_ReadPin (IN_Menu_Btn_GPIO_Port, IN_Menu_Btn_Pin);
-    oldPinState[4] = HAL_GPIO_ReadPin (IN_Ok_Btn_GPIO_Port, IN_Ok_Btn_Pin);
-    oldPinState[5] = HAL_GPIO_ReadPin (IN_Start_Btn_GPIO_Port, IN_Start_Btn_Pin);
-    keyInfo_t key;
+    
   /* Infinite loop */
   for(;;)
   {
-            pinState[IN_WireDown_Btn_Code] = HAL_GPIO_ReadPin (IN_WireDown_Btn_GPIO_Port, IN_WireDown_Btn_Pin);
-            pinState[1] = HAL_GPIO_ReadPin (IN_WireUp_Btn_GPIO_Port, IN_WireUp_Btn_Pin);
-            pinState[2] = HAL_GPIO_ReadPin (IN_GasTest_Btn_GPIO_Port, IN_GasTest_Btn_Pin);
-            pinState[3] = HAL_GPIO_ReadPin (IN_Menu_Btn_GPIO_Port, IN_Menu_Btn_Pin);
-            pinState[4] = HAL_GPIO_ReadPin (IN_Ok_Btn_GPIO_Port, IN_Ok_Btn_Pin);
-            pinState[5] = HAL_GPIO_ReadPin (IN_Start_Btn_GPIO_Port, IN_Start_Btn_Pin);
-
-            if (oldPinState[IN_WireDown_Btn_Code] > pinState[IN_WireDown_Btn_Code])
-      	{
-      	  key.keyCode = IN_WireDown_Btn_Code;
-      	  key.keyState = Press;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-       	}
-            if (oldPinState[IN_WireDown_Btn_Code] < pinState[IN_WireDown_Btn_Code])
-      	{
-      	  key.keyCode = IN_WireDown_Btn_Code;
-      	  key.keyState = Release;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[1] > pinState[1])
-      	{
-      	  key.keyCode = IN_WireUp_Btn_Code;
-      	  key.keyState = Press;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[1] < pinState[1])
-      	{
-      	  key.keyCode = IN_WireUp_Btn_Code;
-      	  key.keyState = Release;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[2] > pinState[2])
-      	{
-      	  key.keyCode = IN_GasTest_Btn_Code;
-      	  key.keyState = Press;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[2] < pinState[2])
-      	{
-      	  key.keyCode = IN_GasTest_Btn_Code;
-      	  key.keyState = Release;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[3] > pinState[3])
-      	{
-      	  key.keyCode = IN_Menu_Btn_Code;
-      	  key.keyState = Press;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[3] < pinState[3])
-      	{
-      	  key.keyCode = IN_Menu_Btn_Code;
-      	  key.keyState = Release;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[4] > pinState[4])
-      	{
-      	  key.keyCode = IN_Ok_Btn_Code;
-      	  key.keyState = Press;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[4] < pinState[4])
-      	{
-      	  key.keyCode = IN_Ok_Btn_Code;
-      	  key.keyState = Release;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (!pinState[4])
-              {
-        	count[4]++;
-        	if (count[4]==50)
-        	  {
-        	    key.keyCode = IN_Ok_Btn_Code;
-        	    key.keyState = Hold;
-        	    xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-        	  }
-              }
-            else
-              {
-        	count[4]=0;
-              }
-
-            if (oldPinState[5] > pinState[5])
-      	{
-      	  key.keyCode = IN_Start_Btn_Code;
-      	  key.keyState = Press;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            if (oldPinState[5] < pinState[5])
-      	{
-      	  key.keyCode = IN_Start_Btn_Code;
-      	  key.keyState = Release;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            for (int i = 0; i < 6; i++)
-      	{
-      	  oldPinState[i] = pinState[i];
-      	}
-            int32_t encStep = encGetStep (&htim2);
-            if (encStep)
-      	{
-      	  key.keyCode = Enc_Code;
-      	  if (encStep > 0)
-      	    key.keyState = Right;
-      	  else
-      	    key.keyState = Left;
-      	  key.count = encStep;
-      	  xQueueSend(keyQueueHandle, &key, portMAX_DELAY);
-      	}
-            osDelay (100);
+         	key_.wireDown.state = !HAL_GPIO_ReadPin (IN_WireDown_Btn_GPIO_Port, IN_WireDown_Btn_Pin);
+			key_.wireUp.state = !HAL_GPIO_ReadPin (IN_WireDown_Btn_GPIO_Port, IN_WireUp_Btn_Pin);
+			key_.gasTest.state = !HAL_GPIO_ReadPin (IN_GasTest_Btn_GPIO_Port, IN_GasTest_Btn_Pin);
+			key_.menu.state = !HAL_GPIO_ReadPin (IN_Menu_Btn_GPIO_Port, IN_Menu_Btn_Pin);
+            key_.ok.state = !HAL_GPIO_ReadPin (IN_Ok_Btn_GPIO_Port, IN_Ok_Btn_Pin);
+            key_.start.state = !HAL_GPIO_ReadPin (IN_Start_Btn_GPIO_Port, IN_Start_Btn_Pin);
+		      
+			osDelay (100);
   }
   /* USER CODE END StartKeyScanTask */
 }
