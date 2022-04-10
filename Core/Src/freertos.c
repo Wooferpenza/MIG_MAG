@@ -460,9 +460,10 @@ void StartControlTask(void const *argument)
 			}
 			int32_t encoderCount = encGetCount(&htim2);
 			inc(pVar, encoderCount, 1.0);
-			wireCicle.state = TMR(&gasBefore_T, LD(keyPLC[START]), Gas_Before.value * 1000.0);
+			cicle.state = LD(gasCicle);
+			wireCicle.state = TMR(&gasBefore_T, LD(keyPLC[START]), Gas_Before.value * 1000.0) && LD(keyPLC[START]);
 			weldingCicle.state = LD(wireCicle);
-			gasCicle.state = (LD(keyPLC[START]) || LD(weldingCicle) || LD(gasCicle)) && !TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0);
+			gasCicle.state = (LD(keyPLC[START]) || LD(gasCicle)) && (LD(keyPLC[START])||!TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0));
 
 			GAS_RUN((LD(keyPLC[GASTEST]) && LDI(gasCicle)) || LD(gasCicle));
 			WIRE_RUN(((LD(keyPLC[WIREDOWN]) || LD(keyPLC[WIREUP])) && LDI(wireCicle)) || LD(wireCicle));
