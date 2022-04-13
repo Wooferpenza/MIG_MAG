@@ -438,7 +438,7 @@ void StartControlTask(void const *argument)
 
 	osThreadResume(displayTaskHandle);
 
-	M_Type cicle, gasCicle, weldingCicle, wireCicle, menuMode,menuModefront, editMode;
+	M_Type cicle, gasCicle, weldingCicle, wireCicle, menuMode, menuModefront, editMode;
 	T_Type gasBefore_T, gasAfter_T;
 	/* Infinite loop */
 	for (;;)
@@ -461,12 +461,11 @@ void StartControlTask(void const *argument)
 			int32_t encoderCount = encGetCount(&htim2);
 			inc(pVar, encoderCount, 1.0);
 
-			gasCicle=OUT((LD(keyPLC[START]) || LD(gasCicle)) && (LD(keyPLC[START])||!TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0)));
-			wireCicle=OUT(TMR(&gasBefore_T, LD(keyPLC[START]), Gas_Before.value * 1000.0) && LD(keyPLC[START]));
-			weldingCicle=OUT(LD(wireCicle));
-			cicle=OUT(LD(gasCicle));
+			gasCicle = OUT((LD(keyPLC[START]) || LD(gasCicle)) && (LD(keyPLC[START]) || !TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0)));
+			wireCicle = OUT(TMR(&gasBefore_T, LD(keyPLC[START]), Gas_Before.value * 1000.0) && LD(keyPLC[START]));
+			weldingCicle = OUT(LD(wireCicle));
+			cicle = OUT(LD(gasCicle));
 
-			
 			GAS_RUN((LD(keyPLC[GASTEST]) && LDI(cicle)) || LD(gasCicle));
 			WIRE_RUN(((LD(keyPLC[WIREDOWN]) || LD(keyPLC[WIREUP])) && LDI(cicle)) || LD(wireCicle));
 			WIRE_DIR((LD(keyPLC[WIREDOWN]) && LDI(cicle)) || LD(wireCicle));
@@ -479,11 +478,12 @@ void StartControlTask(void const *argument)
 				osThreadSuspend(displayTaskHandle);
 			}
 		}
-		menuModefront.state=(LD(menuMode) && LDI(editMode));
+		menuModefront.state = (LD(menuMode) && LDI(editMode));
 		if (LD(menuMode) && LDI(editMode))
 		{
-			
-			if (LDP(menuModefront)) menuDisplayUpdate(); 
+
+			if (LDP(menuModefront))
+				menuDisplayUpdate();
 			int32_t encoderCount = encGetCount(&htim2);
 			if (encoderCount > 0 && (Menu_GetCurrentMenu()->Next != &NULL_MENU))
 			{
@@ -533,18 +533,21 @@ void StartControlTask(void const *argument)
 		{
 			float stepFactor;
 			parameter_t value;
-			if(LDP(editMode)) {	value=*pEditValue;}
-			if (!LDP(editMode)&&LDP(keyPLC[OK]))
+			if (LDP(editMode))
+			{
+				value = *pEditValue;
+			}
+			if (!LDP(editMode) && LDP(keyPLC[OK]))
 			{
 				Lcd_clear(&lcd);
 				Lcd_cursor(&lcd, 0, 5);
 				Lcd_string(&lcd, "SAVE");
-				*pEditValue=value;
+				*pEditValue = value;
 				menuMode.state = true;
 				editMode.state = false;
 				osDelay(1000);
 			}
-			if (!LDP(editMode)&&LDP(keyPLC[MENU]))
+			if (!LDP(editMode) && LDP(keyPLC[MENU]))
 			{
 				Lcd_clear(&lcd);
 				Lcd_cursor(&lcd, 0, 5);
@@ -563,7 +566,7 @@ void StartControlTask(void const *argument)
 				stepFactor = 1.0;
 			}
 			int32_t encoderCount = encGetCount(&htim2);
-			if (encoderCount!=0||LDP(editMode))
+			if (encoderCount != 0 || LDP(editMode))
 			{
 				inc(&value, encoderCount, stepFactor);
 				Lcd_clear(&lcd);
@@ -582,10 +585,10 @@ void StartControlTask(void const *argument)
 		menuMode.oldState = menuMode.state;
 		menuModefront.oldState = menuModefront.state;
 		editMode.oldState = editMode.state;
-		cicle.oldState=cicle.state;
-		gasCicle.oldState=gasCicle.state;
-		wireCicle.oldState=wireCicle.state;
-		weldingCicle.oldState=weldingCicle.state;
+		cicle.oldState = cicle.state;
+		gasCicle.oldState = gasCicle.state;
+		wireCicle.oldState = wireCicle.state;
+		weldingCicle.oldState = weldingCicle.state;
 		osDelay(10);
 	}
 	/* USER CODE END StartControlTask */
@@ -645,7 +648,7 @@ void StartMenuControl(void const *argument)
 void StartEditValue(void const *argument)
 {
 	/* USER CODE BEGIN StartEditValue */
-	
+
 	/* Infinite loop */
 	for (;;)
 	{
@@ -776,31 +779,23 @@ int32_t encGetCount(TIM_HandleTypeDef *tmr)
 }
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
-	static uint16_t adc0[8] = {};
-	static uint16_t adc1[8] = {};
-	static uint16_t adc2[8] = {};
-	static uint16_t adc3[8] = {};
+	static uint16_t adctmp[4] = {0};
 	static uint8_t pointer = 0;
-	adc0[pointer] = adc[0];
-	adc1[pointer] = adc[1];
-	adc2[pointer] = adc[2];
-	adc3[pointer] = adc[3];
-	if (pointer++ >= 8)
-		pointer = 0;
-	adc0Filter = 0;
-	adc1Filter = 0;
-	adc2Filter = 0;
-	adc3Filter = 0;
-	for (int i = 0; i < 8; i++)
+	for (size_t i = 0; i < 4; i++)
 	{
-		adc0Filter += adc0[i];
-		adc1Filter += adc1[i];
-		adc2Filter += adc2[i];
-		adc3Filter += adc3[i];
+		adctmp[i] += adc[i];
 	}
-	adc0Filter >>= 3;
-	adc1Filter >>= 3;
-	adc2Filter >>= 3;
-	adc3Filter >>= 3;
+	if (pointer++ >= 8)
+	{
+		pointer = 0;
+		adc0Filter = adctmp[0] >> 3;
+		adc1Filter = adctmp[1] >> 3;
+		adc2Filter = adctmp[2] >> 3;
+		adc3Filter = adctmp[3] >> 3;
+		for (size_t i = 0; i < 4; i++)
+		{
+			adctmp[i] = 0;
+		}
+	}
 }
 /* USER CODE END Application */
