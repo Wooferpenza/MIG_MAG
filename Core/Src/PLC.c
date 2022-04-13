@@ -48,3 +48,11 @@ bool TMR(T_Type *timer,bool enable,uint16_t time)
   timer->old=timer->curr;
   return timer->curr;
 }
+
+//------------------------------------------------------------------
+M_Type OUT(bool enable)
+{
+  M_Type output;
+  output.state=enable;
+  return output;
+}

@@ -19,7 +19,7 @@ typedef struct
 	uint32_t timeBegin;
     bool curr:1;
     bool old:1;
-	bool enableOld
+	bool enableOld:1
 }T_Type;
 
 bool LD(M_Type);
@@ -27,4 +27,5 @@ bool LDI(M_Type);
 bool LDP(M_Type);
 bool LDF(M_Type);
 bool TMR(T_Type *timer,bool enable, uint16_t time);
+M_Type OUT(bool);
 #endif

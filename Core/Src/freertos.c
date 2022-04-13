@@ -460,14 +460,16 @@ void StartControlTask(void const *argument)
 			}
 			int32_t encoderCount = encGetCount(&htim2);
 			inc(pVar, encoderCount, 1.0);
-			cicle.state = LD(gasCicle);
-			wireCicle.state = TMR(&gasBefore_T, LD(keyPLC[START]), Gas_Before.value * 1000.0) && LD(keyPLC[START]);
-			weldingCicle.state = LD(wireCicle);
-			gasCicle.state = (LD(keyPLC[START]) || LD(gasCicle)) && (LD(keyPLC[START])||!TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0));
 
-			GAS_RUN((LD(keyPLC[GASTEST]) && LDI(gasCicle)) || LD(gasCicle));
-			WIRE_RUN(((LD(keyPLC[WIREDOWN]) || LD(keyPLC[WIREUP])) && LDI(wireCicle)) || LD(wireCicle));
-			WIRE_DIR((LD(keyPLC[WIREDOWN]) && LDI(wireCicle)) || LD(wireCicle));
+			gasCicle=OUT((LD(keyPLC[START]) || LD(gasCicle)) && (LD(keyPLC[START])||!TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0)));
+			wireCicle=OUT(TMR(&gasBefore_T, LD(keyPLC[START]), Gas_Before.value * 1000.0) && LD(keyPLC[START]));
+			weldingCicle=OUT(LD(wireCicle));
+			cicle=OUT(LD(gasCicle));
+
+			
+			GAS_RUN((LD(keyPLC[GASTEST]) && LDI(cicle)) || LD(gasCicle));
+			WIRE_RUN(((LD(keyPLC[WIREDOWN]) || LD(keyPLC[WIREUP])) && LDI(cicle)) || LD(wireCicle));
+			WIRE_DIR((LD(keyPLC[WIREDOWN]) && LDI(cicle)) || LD(wireCicle));
 			WELDING_RUN(LD(weldingCicle));
 
 			if (LDP(keyPLC[MENU]))
@@ -580,6 +582,10 @@ void StartControlTask(void const *argument)
 		menuMode.oldState = menuMode.state;
 		menuModefront.oldState = menuModefront.state;
 		editMode.oldState = editMode.state;
+		cicle.oldState=cicle.state;
+		gasCicle.oldState=gasCicle.state;
+		wireCicle.oldState=wireCicle.state;
+		weldingCicle.oldState=weldingCicle.state;
 		osDelay(10);
 	}
 	/* USER CODE END StartControlTask */
@@ -605,7 +611,7 @@ void StartKeyScanTask(void const *argument)
 		key[MENU] = !HAL_GPIO_ReadPin(IN_Menu_Btn_GPIO_Port, IN_Menu_Btn_Pin);
 		key[OK] = !HAL_GPIO_ReadPin(IN_Ok_Btn_GPIO_Port, IN_Ok_Btn_Pin);
 		key[START] = !HAL_GPIO_ReadPin(IN_Start_Btn_GPIO_Port, IN_Start_Btn_Pin);
-		osDelay(100);
+		osDelay(70);
 	}
 	/* USER CODE END StartKeyScanTask */
 }
