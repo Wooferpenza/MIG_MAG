@@ -50,7 +50,7 @@
 #define OFF GPIO_PIN_RESET
 
 #define WELDING_RUN(state) HAL_GPIO_WritePin(OUT_RUN_GPIO_Port, OUT_RUN_Pin, !state)
-#define IS_WELDING_RUN HAL_GPIO_ReadPin(OUT_RUN_GPIO_Port, OUT_RUN_Pin)
+#define IS_WELDING_RUN !HAL_GPIO_ReadPin(OUT_RUN_GPIO_Port, OUT_RUN_Pin)
 
 #define GAS_RUN(state) HAL_GPIO_WritePin(OUT_GAS_GPIO_Port, OUT_GAS_Pin, (GPIO_PinState)state)
 #define IS_GAS_RUN HAL_GPIO_ReadPin(OUT_GAS_GPIO_Port, OUT_GAS_Pin)
@@ -85,15 +85,16 @@ volatile uint16_t adc1Filter = 0;
 volatile uint16_t adc2Filter = 0;
 volatile uint16_t adc3Filter = 0;
 Lcd_PortType ports[] = {LCD_D4_GPIO_Port, LCD_D5_GPIO_Port, LCD_D6_GPIO_Port, LCD_D7_GPIO_Port};
-Lcd_PinType  pins[] = {LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin};
+Lcd_PinType pins[] = {LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin};
 Lcd_HandleTypeDef lcd;
-//Параметры сварки
+// Диапазоны параметров
 const range_t Urange = {0.0, 30.0};
 const range_t Irange = {0.0, 215.0};
 const range_t Vrange = {1.0, 10.0};
 const range_t Trange = {0.0, 10.0};
 const range_t SetCoderange = {0.0, 3300};
 const range_t PresCoderange = {0.0, 4095};
+//Параметры сварки
 parameter_t U_Set = {15.0, &Urange, 0.1, "U", "V"};				   // Уставка напряжения
 parameter_t I_Set = {215.0, &Irange, 1.0, "I", "A"};			   // Уставка тока
 parameter_t V_Set = {2.5, &Vrange, 0.1, "V", "mm/min"};			   // Уставка скорости подачи проволоки
@@ -103,6 +104,9 @@ parameter_t Gas_Before = {1.0, &Trange, 0.1, "Gas before", "s"};   // Газ д�
 parameter_t Gas_After = {1.0, &Trange, 0.1, "Gas after", "s"};	   // Газ после сварки
 parameter_t V_Manual = {1.0, &Vrange, 0.1, "V", "mm/min"};		   // Проволока вручную
 parameter_t V_Manual_Marsh = {1.0, &Vrange, 0.1, "V", "mm/min"};
+// Измеренные значения
+float U_Present=0;
+float I_Present=0;
 // Калибровочные коэффициенты
 parameter_t U_Set_Code_Min = {755.0, &SetCoderange, 1.0, "USetCodeMin", ""};
 parameter_t U_Set_Value_Min = {15.0, &Urange, 0.1, "USetValueMin", "V"};
@@ -140,12 +144,6 @@ float *const Parameters[6][4] = {
 	{&U_Present_Code_Min.value, &U_Present_Value_Min.value, &U_Present_Code_Max.value, &U_Present_Value_Max.value},
 	{&I_Present_Code_Min.value, &I_Present_Value_Min.value, &I_Present_Code_Max.value, &I_Present_Value_Max.value}};
 
-//  float* const Par1[] = {&Gas_Before.value, &Gas_After.value, &Wire_On.value, &Welding_Off.value};
-//  float* const Par2[] = {&U_Set_Code_Min.value, &U_Set_Value_Min.value, &U_Set_Code_Max.value, &U_Set_Value_Max.value};
-//  float* const Par3[] = {&I_Set_Code_Min.value, &I_Set_Value_Min.value, &I_Set_Code_Max.value, &I_Set_Value_Max.value};
-//  float* const Par4[] = {&V_Set_Code_Min.value, &V_Set_Value_Min.value, &V_Set_Code_Max.value, &V_Set_Value_Max.value};
-//  float* const Par5[] = {&U_Present_Code_Min.value, &U_Present_Value_Min.value, &U_Present_Code_Max.value, &U_Present_Value_Max.value};
-//  float* const Par6[] = {&I_Present_Code_Min.value, &I_Present_Value_Min.value, &I_Present_Code_Max.value, &I_Present_Value_Max.value};
 //----------MENU------------------
 //        Name,		Next,		Previous,	Parent,		Child,		SelectFunc,	EnterFunc,		Text
 //		  �?мя,		Следующ,	Предыдущ,	Верхн,		Вложен,		Функц выбор,
@@ -337,36 +335,34 @@ void StartDisplayTask(void const *argument)
 		uSet = U_Set.value;
 		vSet = V_Set.value;
 		iSet = I_Set.value;
-		osMutexRelease(uSetMutexHandle);
-		if (!HAL_GPIO_ReadPin(IN_Start_Btn_GPIO_Port, IN_Start_Btn_Pin))
+		if (IS_WIRE_RUN && IS_WELDING_RUN)
 		{
-			float uPresent = calibration((float)adc2Filter, U_Present_Code_Min.value, U_Present_Value_Min.value, U_Present_Code_Max.value, U_Present_Value_Max.value);
-			uPresentDisplay = RCfilter(uPresent, uPresentDisplay, 0.95);
-			float iPresent = calibration((float)adc3Filter, I_Present_Code_Min.value, I_Present_Value_Min.value, I_Present_Code_Max.value, I_Present_Value_Max.value);
-			iPresentDisplay = RCfilter(iPresent, iPresentDisplay, 0.95);
+			uPresentDisplay = U_Present;
+			iPresentDisplay = I_Present;
 		}
+		osMutexRelease(uSetMutexHandle);
 
 		Lcd_clear(&lcd);
 		Lcd_cursor(&lcd, 0, 1);
 		Lcd_string(&lcd, "U");
-		Lcd_float(&lcd, uSet, 3);
+		Lcd_float(&lcd, uSet, 1);
 		Lcd_cursor(&lcd, 0, 8);
 		if (pVar == &I_Set)
 		{
 			Lcd_string(&lcd, "I");
-			Lcd_float(&lcd, iSet, 3);
+			Lcd_float(&lcd, iSet, 0);
 		}
 		else
 		{
 			Lcd_string(&lcd, "V");
-			Lcd_float(&lcd, vSet, 3);
+			Lcd_float(&lcd, vSet, 1);
 		}
 
 		Lcd_cursor(&lcd, 1, 2);
-		Lcd_float(&lcd, uPresentDisplay, 3);
+		Lcd_float(&lcd, uPresentDisplay, 1);
 
 		Lcd_cursor(&lcd, 1, 9);
-		Lcd_float(&lcd, iPresentDisplay, 3);
+		Lcd_float(&lcd, iPresentDisplay, 0);
 
 		if (pVar == &U_Set)
 		{
@@ -378,18 +374,6 @@ void StartDisplayTask(void const *argument)
 		}
 		Lcd_string(&lcd, ">");
 
-		uint16_t USetCode = (uint16_t)calibration(uSet, U_Set_Value_Min.value, U_Set_Code_Min.value, U_Set_Value_Max.value, U_Set_Code_Max.value);
-		USetCode = rangeLimitInt(USetCode, SetCoderange.min, SetCoderange.max);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, USetCode);
-
-		uint16_t ISetCode = (uint16_t)calibration(iSet, I_Set_Value_Min.value, I_Set_Code_Min.value, I_Set_Value_Max.value, I_Set_Code_Max.value);
-		ISetCode = rangeLimitInt(ISetCode, SetCoderange.min, SetCoderange.max);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, ISetCode);
-
-		uint16_t VSetCode = (uint16_t)calibration(vSet, V_Set_Value_Min.value, V_Set_Code_Min.value, V_Set_Value_Max.value, V_Set_Code_Max.value);
-		VSetCode = rangeLimitInt(VSetCode, SetCoderange.min, SetCoderange.max);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, VSetCode);
-
 		Lcd_cursor(&lcd, 0, 13);
 		if (IS_GAS_RUN)
 		{
@@ -400,7 +384,7 @@ void StartDisplayTask(void const *argument)
 			Lcd_string(&lcd, " ");
 		}
 		Lcd_cursor(&lcd, 0, 15);
-		if (!IS_WELDING_RUN)
+		if (IS_WELDING_RUN)
 		{
 			Lcd_string(&lcd, "A");
 		}
@@ -472,7 +456,13 @@ void StartControlTask(void const *argument)
 					pVar = &U_Set;
 			}
 			int32_t encoderCount = encGetCount(&htim2);
+			float uPresent = calibration((float)adc2Filter, U_Present_Code_Min.value, U_Present_Value_Min.value, U_Present_Code_Max.value, U_Present_Value_Max.value);
+			float iPresent = calibration((float)adc3Filter, I_Present_Code_Min.value, I_Present_Value_Min.value, I_Present_Code_Max.value, I_Present_Value_Max.value);
+			osMutexWait(uSetMutexHandle, osWaitForever);
 			inc(pVar, encoderCount, 1.0);
+			U_Present = RCfilter(uPresent, U_Present, 0.95);
+			I_Present = RCfilter(iPresent, I_Present, 0.95);
+			osMutexRelease(uSetMutexHandle);
 
 			TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0);
 			gasCicle = OUT((LD(keyPLC[START]) || LD(gasCicle)) && (LD(keyPLC[START]) || !gasAfter_T.curr));
@@ -487,6 +477,23 @@ void StartControlTask(void const *argument)
 			WIRE_RUN(((LD(keyPLC[WIREDOWN]) || LD(keyPLC[WIREUP])) && LDI(cicle)) || LD(wireCicle));
 			WIRE_DIR((LD(keyPLC[WIREDOWN]) && LDI(cicle)) || LD(wireCicle));
 			WELDING_RUN(LD(weldingCicle));
+			
+			float uPresent1 = calibration((float)adc2Filter, U_Present_Code_Min.value, U_Present_Value_Min.value, U_Present_Code_Max.value, U_Present_Value_Max.value);
+			U_Present = RCfilter(uPresent1, U_Present, 0.95);
+			float iPresent1 = calibration((float)adc3Filter, I_Present_Code_Min.value, I_Present_Value_Min.value, I_Present_Code_Max.value, I_Present_Value_Max.value);
+			I_Present = RCfilter(iPresent1, I_Present, 0.95);
+
+			uint16_t USetCode = (uint16_t)calibration(U_Set.value, U_Set_Value_Min.value, U_Set_Code_Min.value, U_Set_Value_Max.value, U_Set_Code_Max.value);
+			USetCode = rangeLimitInt(USetCode, SetCoderange.min, SetCoderange.max);
+			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, USetCode);
+
+			uint16_t ISetCode = (uint16_t)calibration(I_Set.value, I_Set_Value_Min.value, I_Set_Code_Min.value, I_Set_Value_Max.value, I_Set_Code_Max.value);
+			ISetCode = rangeLimitInt(ISetCode, SetCoderange.min, SetCoderange.max);
+			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, ISetCode);
+
+			uint16_t VSetCode = (uint16_t)calibration(V_Set.value, V_Set_Value_Min.value, V_Set_Code_Min.value, V_Set_Value_Max.value, V_Set_Code_Max.value);
+			VSetCode = rangeLimitInt(VSetCode, SetCoderange.min, SetCoderange.max);
+			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, VSetCode);
 
 			if (LDP(keyPLC[MENU]))
 			{
@@ -558,7 +565,7 @@ void StartControlTask(void const *argument)
 			{
 				Lcd_clear(&lcd);
 				Lcd_cursor(&lcd, 0, 5);
-				Lcd_string(&lcd, "SAVE");
+				Lcd_string(&lcd, "OK");
 				*pEditValue = value;
 				menuMode.state = true;
 				editMode.state = false;
@@ -698,7 +705,7 @@ void loadSettings(void)
 	float readPar[] = {0.0, 0.0, 0.0, 0.0};
 	for (size_t i = 0; i < 6; i++)
 	{
-		if (readEeprom(i*32, readPar, sizeof(readPar)) == HAL_OK)
+		if (readEeprom(i * 32, readPar, sizeof(readPar)) == HAL_OK)
 		{
 			for (size_t j = 0; j < 4; j++)
 			{
@@ -707,7 +714,6 @@ void loadSettings(void)
 			osDelay(100);
 		}
 	}
-
 }
 void menuDisplayUpdate(void)
 {
