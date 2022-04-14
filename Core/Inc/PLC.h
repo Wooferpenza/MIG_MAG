@@ -19,7 +19,7 @@ typedef struct
 	uint32_t timeBegin;
     bool curr:1;
     bool old:1;
-	bool enableOld:1
+	bool enableOld:1;
 }T_Type;
 
 bool LD(M_Type);

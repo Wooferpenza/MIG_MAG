@@ -73,10 +73,10 @@ extern const uint8_t ROW_20[];
 
 typedef struct {
 	Lcd_PortType * data_port;
-	Lcd_PinType * data_pin;
+	Lcd_PinType *  data_pin;
 
-	Lcd_PortType rs_port;
-	Lcd_PinType rs_pin;
+	Lcd_PortType  rs_port;
+	Lcd_PinType   rs_pin;
 
 	Lcd_PortType en_port;
 	Lcd_PinType en_pin;
@@ -89,7 +89,7 @@ typedef struct {
 void Lcd_init(Lcd_HandleTypeDef * lcd);
 void Lcd_int16(Lcd_HandleTypeDef * lcd, int16_t number);
 void Lcd_float(Lcd_HandleTypeDef * lcd, float number, int denominator);
-void Lcd_string(Lcd_HandleTypeDef * lcd, char * string);
+void Lcd_string(Lcd_HandleTypeDef * lcd, const char * string);
 void Lcd_cursor(Lcd_HandleTypeDef * lcd, uint8_t row, uint8_t col);
 Lcd_HandleTypeDef Lcd_create(
 		Lcd_PortType port[], Lcd_PinType pin[],

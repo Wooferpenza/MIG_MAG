@@ -100,11 +100,11 @@ void Lcd_float(Lcd_HandleTypeDef * lcd, float number, int denominator)
 /**
  * Write a string on the current position
  */
-void Lcd_string(Lcd_HandleTypeDef * lcd, char * string)
+void Lcd_string(Lcd_HandleTypeDef * lcd, const char * string)
 {
 	for(uint8_t i = 0; i < strlen(string); i++)
 	{
-		lcd_write_data(lcd, string[i]);
+			lcd_write_data(lcd, string[i]);
 	}
 }
 

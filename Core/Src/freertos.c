@@ -85,54 +85,67 @@ volatile uint16_t adc1Filter = 0;
 volatile uint16_t adc2Filter = 0;
 volatile uint16_t adc3Filter = 0;
 Lcd_PortType ports[] = {LCD_D4_GPIO_Port, LCD_D5_GPIO_Port, LCD_D6_GPIO_Port, LCD_D7_GPIO_Port};
-Lcd_PinType pins[] = {LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin};
+Lcd_PinType  pins[] = {LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin};
 Lcd_HandleTypeDef lcd;
 //Параметры сварки
-parameter_t U_Set = {15.0, 0.0, 30.0, 0.1, "U", "V"};				// Уставка напряжения
-parameter_t I_Set = {215.0, 0.0, 215.0, 1.0, "I", "A"};				// Уставка тока
-parameter_t V_Set = {2.5, 1.0, 10.0, 0.1, "V", "m/min"};			// Уставка скорости подачи проволоки
-parameter_t Wire_On = {0.5, 0.0, 2.0, 0.1, "Wire on", "s"};			// Задержка подачи проволоки
-parameter_t Welding_Off = {0.5, 0.0, 2.0, 0.1, "Welding off", "s"}; // Задержка отключения источника
-parameter_t Gas_Before = {1.0, 0.0, 10.0, 0.1, "Gas before", "s"};	// Газ до сварки
-parameter_t Gas_After = {1.0, 0.0, 10.0, 0.1, "Gas after", "s"};	// Газ после сварки
-parameter_t V_Manual = {1.0, 1.0, 10.0, 0.1, "V", "m/min"};
-parameter_t V_Manual_Marsh = {1.0, 1.0, 10.0, 0.1, "V", "m/min"};
+const range_t Urange = {0.0, 30.0};
+const range_t Irange = {0.0, 215.0};
+const range_t Vrange = {1.0, 10.0};
+const range_t Trange = {0.0, 10.0};
+const range_t SetCoderange = {0.0, 3300};
+const range_t PresCoderange = {0.0, 4095};
+parameter_t U_Set = {15.0, &Urange, 0.1, "U", "V"};				   // Уставка напряжения
+parameter_t I_Set = {215.0, &Irange, 1.0, "I", "A"};			   // Уставка тока
+parameter_t V_Set = {2.5, &Vrange, 0.1, "V", "mm/min"};			   // Уставка скорости подачи проволоки
+parameter_t Wire_On = {0.5, &Trange, 0.1, "Wire on", "s"};		   // Задержка подачи проволоки
+parameter_t Welding_Off = {0.5, &Trange, 0.1, "Welding off", "s"}; // Задержка отключения источника
+parameter_t Gas_Before = {1.0, &Trange, 0.1, "Gas before", "s"};   // Газ до сварки
+parameter_t Gas_After = {1.0, &Trange, 0.1, "Gas after", "s"};	   // Газ после сварки
+parameter_t V_Manual = {1.0, &Vrange, 0.1, "V", "mm/min"};		   // Проволока вручную
+parameter_t V_Manual_Marsh = {1.0, &Vrange, 0.1, "V", "mm/min"};
 // Калибровочные коэффициенты
-parameter_t U_Set_Code_Min = {755.0, 0.0, 3300.0, 1.0, "USetCodeMin", ""};
-parameter_t U_Set_Value_Min = {15.0, 0.0, 30.0, 0.1, "USetValueMin", "V"};
-parameter_t U_Set_Code_Max = {1840.0, 0.0, 3300.0, 1.0, "USetCodeMax", ""};
-parameter_t U_Set_Value_Max = {30.0, 0.0, 30.0, 0.1, "USetValueMax", "V"};
+parameter_t U_Set_Code_Min = {755.0, &SetCoderange, 1.0, "USetCodeMin", ""};
+parameter_t U_Set_Value_Min = {15.0, &Urange, 0.1, "USetValueMin", "V"};
+parameter_t U_Set_Code_Max = {1840.0, &SetCoderange, 1.0, "USetCodeMax", ""};
+parameter_t U_Set_Value_Max = {30.0, &Urange, 0.1, "USetValueMax", "V"};
 
-parameter_t I_Set_Code_Min = {1850.0, 0.0, 3300.0, 1.0, "ISetCodeMin", ""};
-parameter_t I_Set_Value_Min = {50.0, 0.0, 250.0, 1.0, "ISetValueMin", "A"};
-parameter_t I_Set_Code_Max = {0.0, 0.0, 3300.0, 1.0, "ISetCodeMax", ""};
-parameter_t I_Set_Value_Max = {215.0, 0.0, 250.0, 1.0, "ISetValueMax", "A"};
+parameter_t I_Set_Code_Min = {1850.0, &SetCoderange, 1.0, "ISetCodeMin", ""};
+parameter_t I_Set_Value_Min = {50.0, &Irange, 1.0, "ISetValueMin", "A"};
+parameter_t I_Set_Code_Max = {0.0, &SetCoderange, 1.0, "ISetCodeMax", ""};
+parameter_t I_Set_Value_Max = {215.0, &Irange, 1.0, "ISetValueMax", "A"};
 
-parameter_t V_Set_Code_Min = {800.0, 0.0, 3300.0, 1.0, "VSetCodeMin", ""};
-parameter_t V_Set_Value_Min = {2.2, 0.0, 10.0, 0.1, "VSetValueMin", "m/min"};
-parameter_t V_Set_Code_Max = {3300.0, 0.0, 3300.0, 1.0, "VSetCodeMax", ""};
-parameter_t V_Set_Value_Max = {8.7, 0.0, 10.0, 0.1, "VSetValueMax", "m/min"};
+parameter_t V_Set_Code_Min = {800.0, &SetCoderange, 1.0, "VSetCodeMin", ""};
+parameter_t V_Set_Value_Min = {2.2, &Vrange, 0.1, "VSetValueMin", "mm/min"};
+parameter_t V_Set_Code_Max = {3300.0, &SetCoderange, 1.0, "VSetCodeMax", ""};
+parameter_t V_Set_Value_Max = {8.7, &Vrange, 0.1, "VSetValueMax", "mm/min"};
 
-parameter_t U_Present_Code_Min = {0.0, 0.0, 4096.0, 1.0, "UPresentCodeMin", ""};
-parameter_t U_Present_Value_Min = {0.0, 0.0, 30.0, 0.1, "UPresentValMin", "V"};
-parameter_t U_Present_Code_Max = {0.0, 0.0, 4096.0, 1.0, "UPresentCodeMax", ""};
-parameter_t U_Present_Value_Max = {0.0, 0.0, 30.0, 0.1, "UPresentValMax", "V"};
+parameter_t U_Present_Code_Min = {0.0, &PresCoderange, 1.0, "UPresentCodeMin", ""};
+parameter_t U_Present_Value_Min = {0.0, &Urange, 0.1, "UPresentValMin", "V"};
+parameter_t U_Present_Code_Max = {0.0, &PresCoderange, 1.0, "UPresentCodeMax", ""};
+parameter_t U_Present_Value_Max = {0.0, &Urange, 0.1, "UPresentValMax", "V"};
 
-parameter_t I_Present_Code_Min = {0.0, 0.0, 4096.0, 1.0, "IPresentCodeMin", ""};
-parameter_t I_Present_Value_Min = {0.0, 0.0, 250.0, 1.0, "IPresentValMin", "A"};
-parameter_t I_Present_Code_Max = {0.0, 0.0, 4096.0, 1.0, "IPresentCodeMax", ""};
-parameter_t I_Present_Value_Max = {0.0, 0.0, 250.0, 1.0, "IPresentValMax", "A"};
+parameter_t I_Present_Code_Min = {0.0, &PresCoderange, 1.0, "IPresentCodeMin", ""};
+parameter_t I_Present_Value_Min = {0.0, &Irange, 1.0, "IPresentValMin", "A"};
+parameter_t I_Present_Code_Max = {0.0, &PresCoderange, 1.0, "IPresentCodeMax", ""};
+parameter_t I_Present_Value_Max = {0.0, &Irange, 1.0, "IPresentValMax", "A"};
 
 parameter_t *pVar = &U_Set;
 parameter_t *pEditValue;
 //Параметры для сохранения
+float *const Parameters[6][4] = {
+	{&Gas_Before.value, &Gas_After.value, &Wire_On.value, &Welding_Off.value},
+	{&U_Set_Code_Min.value, &U_Set_Value_Min.value, &U_Set_Code_Max.value, &U_Set_Value_Max.value},
+	{&I_Set_Code_Min.value, &I_Set_Value_Min.value, &I_Set_Code_Max.value, &I_Set_Value_Max.value},
+	{&V_Set_Code_Min.value, &V_Set_Value_Min.value, &V_Set_Code_Max.value, &V_Set_Value_Max.value},
+	{&U_Present_Code_Min.value, &U_Present_Value_Min.value, &U_Present_Code_Max.value, &U_Present_Value_Max.value},
+	{&I_Present_Code_Min.value, &I_Present_Value_Min.value, &I_Present_Code_Max.value, &I_Present_Value_Max.value}};
 
-float *Par1[] = {&Gas_Before.value, &Gas_After.value, &Wire_On.value, &Welding_Off.value};
-float *Par2[] = {&U_Set_Code_Min.value, &U_Set_Value_Min.value, &U_Set_Code_Max.value, &U_Set_Value_Max.value};
-float *Par3[] = {&I_Set_Code_Min.value, &I_Set_Value_Min.value, &I_Set_Code_Max.value, &I_Set_Value_Max.value};
-float *Par4[] = {&V_Set_Code_Min.value, &V_Set_Value_Min.value, &V_Set_Code_Max.value, &V_Set_Value_Max.value};
-float *Par5[] = {&U_Present_Code_Min.value, &U_Present_Value_Min.value, &U_Present_Code_Max.value, &U_Present_Value_Max.value};
-float *Par6[] = {&I_Present_Code_Min.value, &I_Present_Value_Min.value, &I_Present_Code_Max.value, &I_Present_Value_Max.value};
+//  float* const Par1[] = {&Gas_Before.value, &Gas_After.value, &Wire_On.value, &Welding_Off.value};
+//  float* const Par2[] = {&U_Set_Code_Min.value, &U_Set_Value_Min.value, &U_Set_Code_Max.value, &U_Set_Value_Max.value};
+//  float* const Par3[] = {&I_Set_Code_Min.value, &I_Set_Value_Min.value, &I_Set_Code_Max.value, &I_Set_Value_Max.value};
+//  float* const Par4[] = {&V_Set_Code_Min.value, &V_Set_Value_Min.value, &V_Set_Code_Max.value, &V_Set_Value_Max.value};
+//  float* const Par5[] = {&U_Present_Code_Min.value, &U_Present_Value_Min.value, &U_Present_Code_Max.value, &U_Present_Value_Max.value};
+//  float* const Par6[] = {&I_Present_Code_Min.value, &I_Present_Value_Min.value, &I_Present_Code_Max.value, &I_Present_Value_Max.value};
 //----------MENU------------------
 //        Name,		Next,		Previous,	Parent,		Child,		SelectFunc,	EnterFunc,		Text
 //		  �?мя,		Следующ,	Предыдущ,	Верхн,		Вложен,		Функц выбор,
@@ -366,15 +379,15 @@ void StartDisplayTask(void const *argument)
 		Lcd_string(&lcd, ">");
 
 		uint16_t USetCode = (uint16_t)calibration(uSet, U_Set_Value_Min.value, U_Set_Code_Min.value, U_Set_Value_Max.value, U_Set_Code_Max.value);
-		USetCode = rangeLimitInt(USetCode, 0, 3300);
+		USetCode = rangeLimitInt(USetCode, SetCoderange.min, SetCoderange.max);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, USetCode);
 
 		uint16_t ISetCode = (uint16_t)calibration(iSet, I_Set_Value_Min.value, I_Set_Code_Min.value, I_Set_Value_Max.value, I_Set_Code_Max.value);
-		ISetCode = rangeLimitInt(ISetCode, 0, 3300);
+		ISetCode = rangeLimitInt(ISetCode, SetCoderange.min, SetCoderange.max);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, ISetCode);
 
 		uint16_t VSetCode = (uint16_t)calibration(vSet, V_Set_Value_Min.value, V_Set_Code_Min.value, V_Set_Value_Max.value, V_Set_Code_Max.value);
-		VSetCode = rangeLimitInt(VSetCode, 0, 3300);
+		VSetCode = rangeLimitInt(VSetCode, SetCoderange.min, SetCoderange.max);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, VSetCode);
 
 		Lcd_cursor(&lcd, 0, 13);
@@ -439,7 +452,7 @@ void StartControlTask(void const *argument)
 	osThreadResume(displayTaskHandle);
 
 	M_Type cicle, gasCicle, weldingCicle, wireCicle, menuMode, menuModefront, editMode;
-	T_Type gasBefore_T, gasAfter_T;
+	T_Type gasBefore_T, gasAfter_T, wireOn_T, weldingOff_T;
 	/* Infinite loop */
 	for (;;)
 	{
@@ -461,9 +474,13 @@ void StartControlTask(void const *argument)
 			int32_t encoderCount = encGetCount(&htim2);
 			inc(pVar, encoderCount, 1.0);
 
-			gasCicle = OUT((LD(keyPLC[START]) || LD(gasCicle)) && (LD(keyPLC[START]) || !TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0)));
-			wireCicle = OUT(TMR(&gasBefore_T, LD(keyPLC[START]), Gas_Before.value * 1000.0) && LD(keyPLC[START]));
-			weldingCicle = OUT(LD(wireCicle));
+			TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0);
+			gasCicle = OUT((LD(keyPLC[START]) || LD(gasCicle)) && (LD(keyPLC[START]) || !gasAfter_T.curr));
+			TMR(&gasBefore_T, LD(keyPLC[START]) || LD(weldingCicle), Gas_Before.value * 1000.0);
+			weldingCicle = OUT(gasBefore_T.curr && !weldingOff_T.curr);
+			TMR(&wireOn_T, LD(keyPLC[START]) && LD(weldingCicle), Wire_On.value * 1000);
+			wireCicle = OUT(wireOn_T.curr);
+			TMR(&weldingOff_T, LDI(keyPLC[START]) && LDI(wireCicle), Welding_Off.value * 1000.0);
 			cicle = OUT(LD(gasCicle));
 
 			GAS_RUN((LD(keyPLC[GASTEST]) && LDI(cicle)) || LD(gasCicle));
@@ -666,97 +683,31 @@ void valueEditRun(void)
 void saveSettings(void)
 {
 	float writePar[] = {0.0, 0.0, 0.0, 0.0};
-	for (int i = 0; i < 4; i++)
+	for (size_t i = 0; i < 6; i++)
 	{
-		writePar[i] = *Par1[i];
+		for (size_t j = 0; j < 4; j++)
+		{
+			writePar[j] = *Parameters[i][j];
+		}
+		writeEeprom(i * 32, writePar, sizeof(writePar));
+		osDelay(100);
 	}
-	writeEeprom(0, writePar, sizeof(writePar));
-	osDelay(100);
-	for (int i = 0; i < 4; i++)
-	{
-		writePar[i] = *Par2[i];
-	}
-	writeEeprom(32, writePar, sizeof(writePar));
-	osDelay(100);
-	for (int i = 0; i < 4; i++)
-	{
-		writePar[i] = *Par3[i];
-	}
-	writeEeprom(64, writePar, sizeof(writePar));
-	osDelay(100);
-	for (int i = 0; i < 4; i++)
-	{
-		writePar[i] = *Par4[i];
-	}
-	writeEeprom(96, writePar, sizeof(writePar));
-	osDelay(100);
-	for (int i = 0; i < 4; i++)
-	{
-		writePar[i] = *Par5[i];
-	}
-	writeEeprom(128, writePar, sizeof(writePar));
-	osDelay(100);
-	for (int i = 0; i < 4; i++)
-	{
-		writePar[i] = *Par6[i];
-	}
-	writeEeprom(160, writePar, sizeof(writePar));
-	osDelay(100);
 }
 void loadSettings(void)
 {
 	float readPar[] = {0.0, 0.0, 0.0, 0.0};
-	if (readEeprom(0, readPar, sizeof(readPar)) == HAL_OK)
+	for (size_t i = 0; i < 6; i++)
 	{
-		for (int i = 0; i < 4; i++)
+		if (readEeprom(i*32, readPar, sizeof(readPar)) == HAL_OK)
 		{
-			*Par1[i] = readPar[i];
+			for (size_t j = 0; j < 4; j++)
+			{
+				*Parameters[i][j] = readPar[j];
+			}
+			osDelay(100);
 		}
-
-		osDelay(100);
 	}
 
-	if (readEeprom(32, readPar, sizeof(readPar)) == HAL_OK)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			*Par2[i] = readPar[i];
-		}
-		osDelay(100);
-	}
-	if (readEeprom(64, readPar, sizeof(readPar)) == HAL_OK)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			*Par3[i] = readPar[i];
-		}
-		osDelay(100);
-	}
-
-	if (readEeprom(96, readPar, sizeof(readPar)) == HAL_OK)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			*Par4[i] = readPar[i];
-		}
-		osDelay(100);
-	}
-	if (readEeprom(128, readPar, sizeof(readPar)) == HAL_OK)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			*Par5[i] = readPar[i];
-		}
-		osDelay(100);
-	}
-	if (readEeprom(160, readPar, sizeof(readPar)) == HAL_OK)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			*Par6[i] = readPar[i];
-		}
-		osDelay(100);
-	}
 }
 void menuDisplayUpdate(void)
 {
@@ -781,20 +732,23 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
 	static uint16_t adctmp[4] = {0};
 	static uint8_t pointer = 0;
-	for (size_t i = 0; i < 4; i++)
+	if (hadc->Instance == ADC1)
 	{
-		adctmp[i] += adc[i];
-	}
-	if (pointer++ >= 8)
-	{
-		pointer = 0;
-		adc0Filter = adctmp[0] >> 3;
-		adc1Filter = adctmp[1] >> 3;
-		adc2Filter = adctmp[2] >> 3;
-		adc3Filter = adctmp[3] >> 3;
 		for (size_t i = 0; i < 4; i++)
 		{
-			adctmp[i] = 0;
+			adctmp[i] += adc[i];
+		}
+		if (pointer++ >= 8)
+		{
+			pointer = 0;
+			adc0Filter = adctmp[0] >> 3;
+			adc1Filter = adctmp[1] >> 3;
+			adc2Filter = adctmp[2] >> 3;
+			adc3Filter = adctmp[3] >> 3;
+			for (size_t i = 0; i < 4; i++)
+			{
+				adctmp[i] = 0;
+			}
 		}
 	}
 }

@@ -26,7 +26,7 @@
 		void (*SelectCallback)(void); /**< Pointer to the optional menu-specific select callback of this menu item */
 		void (*EnterCallback)(void); /**< Pointer to the optional menu-specific enter callback of this menu item */
 		void * pointer;
-		const char Text[]; /**< Menu item text to pass to the menu display callback function */
+		char *Text; /**< Menu item text to pass to the menu display callback function */
 	} Menu_Item_t;
 
 	/** Creates a new menu item entry with the specified links and callbacks.

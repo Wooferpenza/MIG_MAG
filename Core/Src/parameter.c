@@ -8,15 +8,15 @@
 void add(parameter_t *parameter,float value)
 {
   parameter->value+=value;
-  if (parameter->value<parameter->min) {parameter->value=parameter->min;}
-  if (parameter->value>parameter->max) {parameter->value=parameter->max;}
+  if (parameter->value<parameter->range->min) {parameter->value=parameter->range->min;}
+  if (parameter->value>parameter->range->max) {parameter->value=parameter->range->max;}
 return;
 }
 
 void inc(parameter_t *parameter,float stepNumber,float stepFactor)
 {
     parameter->value+=(parameter->step*stepNumber*stepFactor);
-    if (parameter->value<parameter->min) {parameter->value=parameter->min;}
-    if (parameter->value>parameter->max) {parameter->value=parameter->max;}
+    if (parameter->value<parameter->range->min) {parameter->value=parameter->range->min;}
+    if (parameter->value>parameter->range->max) {parameter->value=parameter->range->max;}
     return;
 }

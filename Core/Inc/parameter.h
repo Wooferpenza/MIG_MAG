@@ -9,12 +9,17 @@
 #define INC_PARAMETER_H_
 typedef struct
 {
-  float value;
   float min;
   float max;
+} range_t;
+
+typedef struct
+{
+  float value;
+  const range_t *range;
   float step;
-  char *name;
-  char *unit;
+  const char *name;
+  const char *unit;
 } parameter_t;
 
 void add(parameter_t *,float);
