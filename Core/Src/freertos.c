@@ -37,6 +37,7 @@
 #include "eeprom.h"
 #include "dsp.h"
 #include "PLC.h"
+#include "onewire.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -257,6 +258,7 @@ void MX_FREERTOS_Init(void)
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1);
 	HAL_Delay(10);
 
+    OW_Send(OW_SEND_RESET,"\xcc\x44",2,NULL,NULL,OW_NO_READ);
 	/* USER CODE END Init */
 	/* Create the mutex(es) */
 	/* definition and creation of uSetMutex */
