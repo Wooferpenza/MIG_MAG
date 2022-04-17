@@ -34,5 +34,6 @@
 
 uint8_t OW_Init();
 uint8_t OW_Send(uint8_t sendReset, uint8_t *command, uint8_t cLen, uint8_t *data, uint8_t dLen, uint8_t readStart);
-
+void OW_Measure();
+int32_t OW_Read_Sensors(size_t n);
 #endif /* ONEWIRE_H_ */

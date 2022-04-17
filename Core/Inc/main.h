@@ -94,7 +94,7 @@ void Error_Handler(void);
 #define LCD_D4_GPIO_Port GPIOB
 #define LCD_E_Pin GPIO_PIN_8
 #define LCD_E_GPIO_Port GPIOA
-#define LCD_RS_Pin GPIO_PIN_10
+#define LCD_RS_Pin GPIO_PIN_11
 #define LCD_RS_GPIO_Port GPIOA
 #define Enc_A_Pin GPIO_PIN_15
 #define Enc_A_GPIO_Port GPIOA

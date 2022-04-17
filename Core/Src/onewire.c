@@ -6,13 +6,19 @@
  */
 
 #include "onewire.h"
-
+#include "FreeRTOS.h"
+#include "task.h"
 #define OW_DMA_CH_RX DMA1_Channel5
 #define OW_DMA_CH_TX DMA1_Channel4
 //#define OW_DMA_FLAG		DMA1_FLAG_TC5
 
 // ����� ��� ������/�������� �� 1-wire
 uint8_t ow_buf[8];
+const uint8_t ow_sensorsID[3][12]={
+	{"\x55\x28\x61\x64\x12\x33\xA7\x60\x04\xbe\xff\xff"},
+	{"\x55\x28\x61\x64\x12\x33\xA7\x60\x04\xbe\xff\xff"},
+	{"\x55\x28\x61\x64\x12\x33\xA7\x60\x04\xbe\xff\xff"}
+};
 
 #define OW_0 0x00
 #define OW_1 0xff
@@ -75,7 +81,7 @@ uint8_t OW_Init()
 	huart1.Init.Mode = UART_MODE_TX_RX;
 	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	if (HAL_HalfDuplex_Init(&huart1) != HAL_OK)
+	if (HAL_UART_Init(&huart1) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -95,15 +101,15 @@ uint8_t OW_Reset()
 	huart1.Init.Mode = UART_MODE_TX_RX;
 	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	if (HAL_HalfDuplex_Init(&huart1) != HAL_OK)
+	if (HAL_UART_Init(&huart1) != HAL_OK)
 	{
 		Error_Handler();
 	}
-	uint8_t chTX = 0xD0;
+	uint8_t chTX = 0xF0;
 	uint8_t chRX = 0x0;
-	HAL_UART_Transmit(&huart1, &chTX, sizeof(chTX), 10);
-	HAL_UART_Receive(&huart1, &chRX, sizeof(chRX), 10);
-
+	huart1.Instance->DR = chTX;
+	HAL_Delay(1);
+	chRX=huart1.Instance->DR;
 	huart1.Instance = USART1;
 	huart1.Init.BaudRate = 115200;
 	huart1.Init.WordLength = UART_WORDLENGTH_8B;
@@ -112,12 +118,12 @@ uint8_t OW_Reset()
 	huart1.Init.Mode = UART_MODE_TX_RX;
 	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	if (HAL_HalfDuplex_Init(&huart1) != HAL_OK)
+	if (HAL_UART_Init(&huart1) != HAL_OK)
 	{
 		Error_Handler();
 	}
 
-	if ((chRX != chTX)||1)
+	if ((chRX != chTX))
 	{
 		return OW_OK;
 	}
@@ -156,74 +162,43 @@ uint8_t OW_Send(uint8_t sendReset, uint8_t *command, uint8_t cLen,
 		command++;
 		cLen--;
 
-		DMA_InitTypeDef DMA_InitStructure;
-
-		// DMA �� ������
-		// DMA_DeInit(OW_DMA_CH_RX);
-		// DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) & (USART2->DR);
-		// DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)ow_buf;
-		// DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-		// DMA_InitStructure.DMA_BufferSize = 8;
-		// DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-		// DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-		// DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-		// DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-		// DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-		// DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
-		// DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-		// DMA_Init(OW_DMA_CH_RX, &DMA_InitStructure);
-
-		// DMA �� ������
-		// DMA_DeInit(OW_DMA_CH_TX);
-		// DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) & (USART2->DR);
-		// DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)ow_buf;
-		// DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-		// DMA_InitStructure.DMA_BufferSize = 8;
-		// DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-		// DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-		// DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-		// DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-		// DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-		// DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
-		// DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-		// DMA_Init(OW_DMA_CH_TX, &DMA_InitStructure);
-
-		// ����� ����� ��������
-		// USART_ClearFlag(OW_USART, USART_FLAG_RXNE | USART_FLAG_TC | USART_FLAG_TXE);
-		// USART_DMACmd(OW_USART, USART_DMAReq_Tx | USART_DMAReq_Rx, ENABLE);
-		// DMA_Cmd(OW_DMA_CH_RX, ENABLE);
-		// DMA_Cmd(OW_DMA_CH_TX, ENABLE);
-
-		// ����, ���� �� ������ 8 ����
-// 		while (DMA_GetFlagStatus(OW_DMA_FLAG) == RESET)
-// 		{
-// #ifdef OW_GIVE_TICK_RTOS
-// 			taskYIELD();
-// #endif
-// 		}
-
-		// ��������� DMA
-		// DMA_Cmd(OW_DMA_CH_TX, DISABLE);
-		// DMA_Cmd(OW_DMA_CH_RX, DISABLE);
-		// USART_DMACmd(OW_USART, USART_DMAReq_Tx | USART_DMAReq_Rx, DISABLE);
-
 		// ���� ����������� ������ ����-�� ����� - ������� �� � �����
-		HAL_UART_Transmit(&huart1,ow_buf,sizeof(ow_buf),1);
-	//	HAL_UART_Receive(&huart1,ow_buf,sizeof(ow_buf),100);
-		if (readStart == 0 && dLen > 0)
+		HAL_UART_Receive_DMA(&huart1,ow_buf,sizeof(ow_buf));
+		HAL_UART_Transmit_DMA(&huart1, ow_buf, sizeof(ow_buf));
+		while (HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY)
 		{
-			*data = OW_toByte(ow_buf);
-			data++;
-			dLen--;
+			// #ifdef OW_GIVE_TICK_RTOS
+			 			taskYIELD();
+			// #endif
 		}
-		else
-		{
-			if (readStart != OW_NO_READ)
+		
+			if (readStart == 0 && dLen > 0)
 			{
-				readStart--;
+				*data = OW_toByte(ow_buf);
+				data++;
+				dLen--;
 			}
-		}
+			else
+			{
+				if (readStart != OW_NO_READ)
+				{
+					readStart--;
+				}
+			}
 	}
 
 	return OW_OK;
+}
+
+void OW_Measure()
+{
+	OW_Send(OW_SEND_RESET, "\xcc\x44",2,NULL,0,OW_NO_READ);
+}
+int32_t OW_Read_Sensors(size_t n)
+{
+	uint8_t buf[2];
+	int32_t value=0;
+	OW_Send(OW_SEND_RESET, ow_sensorsID[n], 12, buf, 2, 10);
+	value=(buf[1]<<8)+buf[0];
+	return value/16;
 }
