@@ -96,7 +96,7 @@ void Lcd_float(Lcd_HandleTypeDef *lcd, float number, int denominator)
 	char buffer[12];
 	floatToString(number, buffer);
 	size_t i = 0;
-	size_t pointPos = 0;
+	//size_t pointPos = 0;
 	while (buffer[i])
 	{
 		if (buffer[i] == '.')

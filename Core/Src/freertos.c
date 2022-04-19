@@ -195,10 +195,10 @@ osStaticThreadDef_t controTaskControlBlock;
 osThreadId keyScanTaskHandle;
 uint32_t keyScanTaskBuffer[ 64 ];
 osStaticThreadDef_t keyScanTaskControlBlock;
-osThreadId menuControlHandle;
-uint32_t menuControlBuffer[ 128 ];
+osThreadId temperatureHandle;
+uint32_t menuControlBuffer[ 64 ];
 osStaticThreadDef_t menuControlControlBlock;
-osThreadId editValueHandle;
+osThreadId saveModeHandle;
 uint32_t editValueBuffer[ 64 ];
 osStaticThreadDef_t editValueControlBlock;
 osMutexId uSetMutexHandle;
@@ -215,8 +215,8 @@ void menuDisplayUpdate(void);
 void StartDisplayTask(void const * argument);
 void StartControlTask(void const * argument);
 void StartKeyScanTask(void const * argument);
-void StartMenuControl(void const * argument);
-void StartEditValue(void const * argument);
+void StartTemperature(void const * argument);
+void StartSaveMode(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -290,19 +290,19 @@ void MX_FREERTOS_Init(void) {
   osThreadStaticDef(keyScanTask, StartKeyScanTask, osPriorityIdle, 0, 64, keyScanTaskBuffer, &keyScanTaskControlBlock);
   keyScanTaskHandle = osThreadCreate(osThread(keyScanTask), NULL);
 
-  /* definition and creation of menuControl */
-  osThreadStaticDef(menuControl, StartMenuControl, osPriorityIdle, 0, 128, menuControlBuffer, &menuControlControlBlock);
-  menuControlHandle = osThreadCreate(osThread(menuControl), NULL);
+  /* definition and creation of temperature */
+  osThreadStaticDef(temperature, StartTemperature, osPriorityIdle, 0, 64, menuControlBuffer, &menuControlControlBlock);
+  temperatureHandle = osThreadCreate(osThread(temperature), NULL);
 
-  /* definition and creation of editValue */
-  osThreadStaticDef(editValue, StartEditValue, osPriorityNormal, 0, 64, editValueBuffer, &editValueControlBlock);
-  editValueHandle = osThreadCreate(osThread(editValue), NULL);
+  /* definition and creation of saveMode */
+  osThreadStaticDef(saveMode, StartSaveMode, osPriorityNormal, 0, 64, editValueBuffer, &editValueControlBlock);
+  saveModeHandle = osThreadCreate(osThread(saveMode), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
 	osThreadSuspend(displayTaskHandle);
 //	osThreadSuspend(menuControlHandle);
-	osThreadSuspend(editValueHandle);
+
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -475,9 +475,9 @@ void StartControlTask(void const * argument)
 			WELDING_RUN(LD(weldingCicle));
 			
 			float uPresent1 = calibration((float)adc2Filter, U_Present_Code_Min.value, U_Present_Value_Min.value, U_Present_Code_Max.value, U_Present_Value_Max.value);
-			U_Present = RCfilter(uPresent1, U_Present, 0.95);
+			U_Present = RCfilter(uPresent1, U_Present, 0.0);
 			float iPresent1 = calibration((float)adc3Filter, I_Present_Code_Min.value, I_Present_Value_Min.value, I_Present_Code_Max.value, I_Present_Value_Max.value);
-			I_Present = RCfilter(iPresent1, I_Present, 0.95);
+			I_Present = RCfilter(iPresent1, I_Present, 0.0);
 
 			uint16_t USetCode = (uint16_t)calibration(U_Set.value, U_Set_Value_Min.value, U_Set_Code_Min.value, U_Set_Value_Max.value, U_Set_Code_Max.value);
 			USetCode = rangeLimitInt(USetCode, SetCoderange.min, SetCoderange.max);
@@ -648,45 +648,43 @@ void StartKeyScanTask(void const * argument)
   /* USER CODE END StartKeyScanTask */
 }
 
-/* USER CODE BEGIN Header_StartMenuControl */
+/* USER CODE BEGIN Header_StartTemperature */
 /**
- * @brief Function implementing the menuControl thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartMenuControl */
-void StartMenuControl(void const * argument)
+* @brief Function implementing the temperature thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTemperature */
+void StartTemperature(void const * argument)
 {
-  /* USER CODE BEGIN StartMenuControl */
-
-	/* Infinite loop */
-	for (;;)
-	{
-		OW_Measure();
+  /* USER CODE BEGIN StartTemperature */
+  /* Infinite loop */
+  for(;;)
+  {
+   		OW_Measure();
 		osDelay(1000);
 		temperature=OW_Read_Sensors(0);
 		osDelay(1000);
-	}
-  /* USER CODE END StartMenuControl */
+  }
+  /* USER CODE END StartTemperature */
 }
 
-/* USER CODE BEGIN Header_StartEditValue */
+/* USER CODE BEGIN Header_StartSaveMode */
 /**
- * @brief Function implementing the editValue thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartEditValue */
-void StartEditValue(void const * argument)
+* @brief Function implementing the saveMode thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartSaveMode */
+void StartSaveMode(void const * argument)
 {
-  /* USER CODE BEGIN StartEditValue */
-
-	/* Infinite loop */
-	for (;;)
-	{
-		osDelay(100);
-	}
-  /* USER CODE END StartEditValue */
+  /* USER CODE BEGIN StartSaveMode */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1000);
+  }
+  /* USER CODE END StartSaveMode */
 }
 
 /* Private application code --------------------------------------------------*/
@@ -744,7 +742,7 @@ int32_t encGetCount(TIM_HandleTypeDef *tmr)
 }
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
-	static uint16_t adctmp[4] = {0};
+	static uint32_t adctmp[4] = {0};
 	static uint8_t pointer = 0;
 	if (hadc->Instance == ADC1)
 	{
@@ -752,13 +750,13 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 		{
 			adctmp[i] += adc[i];
 		}
-		if (pointer++ >= 8)
+		if (pointer++ >= 16)
 		{
 			pointer = 0;
-			adc0Filter = adctmp[0] >> 3;
-			adc1Filter = adctmp[1] >> 3;
-			adc2Filter = adctmp[2] >> 3;
-			adc3Filter = adctmp[3] >> 3;
+			adc0Filter = adctmp[0] >> 4;
+			adc1Filter = adctmp[1] >> 4;
+			adc2Filter = adctmp[2] >> 4;
+			adc3Filter = adctmp[3] >> 4;
 			for (size_t i = 0; i < 4; i++)
 			{
 				adctmp[i] = 0;
