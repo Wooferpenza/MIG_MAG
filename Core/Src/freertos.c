@@ -85,7 +85,8 @@ volatile uint16_t adc0Filter = 0;
 volatile uint16_t adc1Filter = 0;
 volatile uint16_t adc2Filter = 0;
 volatile uint16_t adc3Filter = 0;
-int32_t temperature = 0;
+int32_t temperature[2] = {0,0};
+
 Lcd_PortType ports[] = {LCD_D4_GPIO_Port, LCD_D5_GPIO_Port, LCD_D6_GPIO_Port, LCD_D7_GPIO_Port};
 Lcd_PinType pins[] = {LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin};
 Lcd_HandleTypeDef lcd;
@@ -196,7 +197,7 @@ osThreadId keyScanTaskHandle;
 uint32_t keyScanTaskBuffer[ 64 ];
 osStaticThreadDef_t keyScanTaskControlBlock;
 osThreadId temperatureHandle;
-uint32_t menuControlBuffer[ 64 ];
+uint32_t menuControlBuffer[ 128 ];
 osStaticThreadDef_t menuControlControlBlock;
 osThreadId saveModeHandle;
 uint32_t editValueBuffer[ 64 ];
@@ -337,7 +338,7 @@ void StartDisplayTask(void const * argument)
 	float iSet = 0;
 	float uPresentDisplay = 0;
 	float iPresentDisplay = 0;
-	float temperatureDisplay = 0;
+	float temperatureDisplay[2] = {0,0};
 	for (;;)
 	{
 
@@ -354,7 +355,8 @@ void StartDisplayTask(void const * argument)
 			osMutexRelease(valuePresentMutexHandle);
 		}
 		osMutexWait(temperatureMutexHandle, osWaitForever);
-		temperatureDisplay = temperature;
+		temperatureDisplay[0] = temperature[0];
+		temperatureDisplay[1] = temperature[1];
 		osMutexRelease(temperatureMutexHandle);
 		Lcd_clear(&lcd);
 		Lcd_cursor(&lcd, 0, 1);
@@ -364,8 +366,10 @@ void StartDisplayTask(void const * argument)
 		if (pVar == &I_Set)
 		{
 			Lcd_string(&lcd, "I");
-			// Lcd_float(&lcd, temperatureDisplay, 0);
-			Lcd_float(&lcd, iSet, 0);
+			Lcd_float(&lcd, temperatureDisplay[0], 0);
+			Lcd_string(&lcd, " ");
+			Lcd_float(&lcd, temperatureDisplay[1], 0);
+			//Lcd_float(&lcd, iSet, 0);
 		}
 		else
 		{
@@ -396,7 +400,7 @@ void StartDisplayTask(void const * argument)
 		}
 		else
 		{
-			Lcd_string(&lcd, " ");
+		//	Lcd_string(&lcd, " ");
 		}
 		Lcd_cursor(&lcd, 0, 15);
 		if (IS_WELDING_RUN)
@@ -405,7 +409,7 @@ void StartDisplayTask(void const * argument)
 		}
 		else
 		{
-			Lcd_string(&lcd, " ");
+			//Lcd_string(&lcd, " ");
 		}
 		Lcd_cursor(&lcd, 1, 13);
 		if (IS_WIRE_RUN)
@@ -422,7 +426,7 @@ void StartDisplayTask(void const * argument)
 		}
 		else
 		{
-			Lcd_string(&lcd, "  ");
+			//Lcd_string(&lcd, "  ");
 		}
 
 		osDelay(100);
@@ -685,10 +689,15 @@ void StartTemperature(void const * argument)
 	for (;;)
 	{
 		OW_Measure();
-		osDelay(1000);
-		int32_t temp = OW_Read_Sensors(0);
+		osDelay(750);
+		int32_t temp0 = OW_Read_Sensors(0);
+		osDelay(100);
+	    OW_Measure();
+		osDelay(750);
+		int32_t temp1 = OW_Read_Sensors(1);
 		osMutexWait(temperatureMutexHandle, osWaitForever);
-		temperature = temp;
+		temperature[0] = temp1;
+		temperature[1]= temp0;
 		osMutexRelease(temperatureMutexHandle);
 		osDelay(100);
 	}
