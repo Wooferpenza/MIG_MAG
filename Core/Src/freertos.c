@@ -191,17 +191,17 @@ osThreadId displayTaskHandle;
 uint32_t displayTaskBuffer[ 128 ];
 osStaticThreadDef_t displayTaskControlBlock;
 osThreadId controlTaskHandle;
-uint32_t controTaskBuffer[ 128 ];
+uint32_t controTaskBuffer[ 256 ];
 osStaticThreadDef_t controTaskControlBlock;
 osThreadId keyScanTaskHandle;
 uint32_t keyScanTaskBuffer[ 64 ];
 osStaticThreadDef_t keyScanTaskControlBlock;
 osThreadId temperatureHandle;
-uint32_t menuControlBuffer[ 128 ];
-osStaticThreadDef_t menuControlControlBlock;
+uint32_t temperatureBuffer[ 64 ];
+osStaticThreadDef_t temperatureControlBlock;
 osThreadId saveModeHandle;
-uint32_t editValueBuffer[ 64 ];
-osStaticThreadDef_t editValueControlBlock;
+uint32_t saveModeBuffer[ 64 ];
+osStaticThreadDef_t saveModeControlBlock;
 osMutexId valueSetMutexHandle;
 osStaticMutexDef_t valueSetMutexControlBlock;
 osMutexId valuePresentMutexHandle;
@@ -298,19 +298,19 @@ void MX_FREERTOS_Init(void) {
   displayTaskHandle = osThreadCreate(osThread(displayTask), NULL);
 
   /* definition and creation of controlTask */
-  osThreadStaticDef(controlTask, StartControlTask, osPriorityNormal, 0, 128, controTaskBuffer, &controTaskControlBlock);
+  osThreadStaticDef(controlTask, StartControlTask, osPriorityNormal, 0, 256, controTaskBuffer, &controTaskControlBlock);
   controlTaskHandle = osThreadCreate(osThread(controlTask), NULL);
 
   /* definition and creation of keyScanTask */
-  osThreadStaticDef(keyScanTask, StartKeyScanTask, osPriorityIdle, 0, 64, keyScanTaskBuffer, &keyScanTaskControlBlock);
+  osThreadStaticDef(keyScanTask, StartKeyScanTask, osPriorityNormal, 0, 64, keyScanTaskBuffer, &keyScanTaskControlBlock);
   keyScanTaskHandle = osThreadCreate(osThread(keyScanTask), NULL);
 
   /* definition and creation of temperature */
-  osThreadStaticDef(temperature, StartTemperature, osPriorityBelowNormal, 0, 64, menuControlBuffer, &menuControlControlBlock);
+  osThreadStaticDef(temperature, StartTemperature, osPriorityLow, 0, 64, temperatureBuffer, &temperatureControlBlock);
   temperatureHandle = osThreadCreate(osThread(temperature), NULL);
 
   /* definition and creation of saveMode */
-  osThreadStaticDef(saveMode, StartSaveMode, osPriorityNormal, 0, 64, editValueBuffer, &editValueControlBlock);
+  osThreadStaticDef(saveMode, StartSaveMode, osPriorityLow, 0, 64, saveModeBuffer, &saveModeControlBlock);
   saveModeHandle = osThreadCreate(osThread(saveMode), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -688,18 +688,18 @@ void StartTemperature(void const * argument)
 	/* Infinite loop */
 	for (;;)
 	{
-		OW_Measure();
-		osDelay(750);
-		int32_t temp0 = OW_Read_Sensors(0);
-		osDelay(100);
-	    OW_Measure();
-		osDelay(750);
-		int32_t temp1 = OW_Read_Sensors(1);
-		osMutexWait(temperatureMutexHandle, osWaitForever);
-		temperature[0] = temp1;
-		temperature[1]= temp0;
-		osMutexRelease(temperatureMutexHandle);
-		osDelay(100);
+	//	OW_Measure();
+	//	osDelay(750);
+	//	int32_t temp0 = OW_Read_Sensors(0);
+	//	osDelay(100);
+	//    OW_Measure();
+	//	osDelay(750);
+	//	int32_t temp1 = OW_Read_Sensors(1);
+	//	osMutexWait(temperatureMutexHandle, osWaitForever);
+	//	temperature[0] = temp1;
+	//	temperature[1]= temp0;
+	//	osMutexRelease(temperatureMutexHandle);
+		osDelay(10000);
 	}
   /* USER CODE END StartTemperature */
 }
