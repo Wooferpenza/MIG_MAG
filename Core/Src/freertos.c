@@ -85,7 +85,7 @@ volatile uint16_t adc0Filter = 0;
 volatile uint16_t adc1Filter = 0;
 volatile uint16_t adc2Filter = 0;
 volatile uint16_t adc3Filter = 0;
-int32_t temperature[2] = {0,0};
+int32_t temperature[2] = {0, 0};
 
 Lcd_PortType ports[] = {LCD_D4_GPIO_Port, LCD_D5_GPIO_Port, LCD_D6_GPIO_Port, LCD_D7_GPIO_Port};
 Lcd_PinType pins[] = {LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin};
@@ -188,19 +188,19 @@ MENU_ITEM(Menu_3_20, NULL_MENU, Menu_3_19, Menu_3, NULL_MENU, NULL, valueEditRun
 // extern float Temp[MAXDEVICES_ON_THE_BUS];
 /* USER CODE END Variables */
 osThreadId displayTaskHandle;
-uint32_t displayTaskBuffer[ 128 ];
+uint32_t displayTaskBuffer[128];
 osStaticThreadDef_t displayTaskControlBlock;
 osThreadId controlTaskHandle;
-uint32_t controTaskBuffer[ 256 ];
+uint32_t controTaskBuffer[256];
 osStaticThreadDef_t controTaskControlBlock;
 osThreadId keyScanTaskHandle;
-uint32_t keyScanTaskBuffer[ 64 ];
+uint32_t keyScanTaskBuffer[64];
 osStaticThreadDef_t keyScanTaskControlBlock;
 osThreadId temperatureHandle;
-uint32_t temperatureBuffer[ 64 ];
+uint32_t temperatureBuffer[64];
 osStaticThreadDef_t temperatureControlBlock;
 osThreadId saveModeHandle;
-uint32_t saveModeBuffer[ 64 ];
+uint32_t saveModeBuffer[128];
 osStaticThreadDef_t saveModeControlBlock;
 osMutexId valueSetMutexHandle;
 osStaticMutexDef_t valueSetMutexControlBlock;
@@ -219,16 +219,16 @@ void loadMode(void);
 void menuDisplayUpdate(void);
 /* USER CODE END FunctionPrototypes */
 
-void StartDisplayTask(void const * argument);
-void StartControlTask(void const * argument);
-void StartKeyScanTask(void const * argument);
-void StartTemperature(void const * argument);
-void StartSaveMode(void const * argument);
+void StartDisplayTask(void const *argument);
+void StartControlTask(void const *argument);
+void StartKeyScanTask(void const *argument);
+void StartTemperature(void const *argument);
+void StartSaveMode(void const *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* GetIdleTaskMemory prototype (linked to static allocation support) */
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize);
 
 /* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
 static StaticTask_t xIdleTaskTCBBuffer;
@@ -244,12 +244,13 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackTyp
 /* USER CODE END GET_IDLE_TASK_MEMORY */
 
 /**
-  * @brief  FreeRTOS initialization
-  * @param  None
-  * @retval None
-  */
-void MX_FREERTOS_Init(void) {
-  /* USER CODE BEGIN Init */
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
+void MX_FREERTOS_Init(void)
+{
+	/* USER CODE BEGIN Init */
 	HAL_Delay(50);
 	lcd = Lcd_create(ports, pins, LCD_RS_GPIO_Port, LCD_RS_Pin, LCD_E_GPIO_Port, LCD_E_Pin, &htim4);
 	HAL_ADCEx_Calibration_Start(&hadc1);
@@ -262,64 +263,63 @@ void MX_FREERTOS_Init(void) {
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1);
 	HAL_Delay(10);
 
-  /* USER CODE END Init */
-  /* Create the mutex(es) */
-  /* definition and creation of valueSetMutex */
-  osMutexStaticDef(valueSetMutex, &valueSetMutexControlBlock);
-  valueSetMutexHandle = osMutexCreate(osMutex(valueSetMutex));
+	/* USER CODE END Init */
+	/* Create the mutex(es) */
+	/* definition and creation of valueSetMutex */
+	osMutexStaticDef(valueSetMutex, &valueSetMutexControlBlock);
+	valueSetMutexHandle = osMutexCreate(osMutex(valueSetMutex));
 
-  /* definition and creation of valuePresentMutex */
-  osMutexStaticDef(valuePresentMutex, &valuePresentMutexControlBlock);
-  valuePresentMutexHandle = osMutexCreate(osMutex(valuePresentMutex));
+	/* definition and creation of valuePresentMutex */
+	osMutexStaticDef(valuePresentMutex, &valuePresentMutexControlBlock);
+	valuePresentMutexHandle = osMutexCreate(osMutex(valuePresentMutex));
 
-  /* definition and creation of temperatureMutex */
-  osMutexStaticDef(temperatureMutex, &temperatureMutexControlBlock);
-  temperatureMutexHandle = osMutexCreate(osMutex(temperatureMutex));
+	/* definition and creation of temperatureMutex */
+	osMutexStaticDef(temperatureMutex, &temperatureMutexControlBlock);
+	temperatureMutexHandle = osMutexCreate(osMutex(temperatureMutex));
 
-  /* USER CODE BEGIN RTOS_MUTEX */
+	/* USER CODE BEGIN RTOS_MUTEX */
 	/* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
+	/* USER CODE END RTOS_MUTEX */
 
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
+	/* USER CODE BEGIN RTOS_SEMAPHORES */
 	/* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
+	/* USER CODE END RTOS_SEMAPHORES */
 
-  /* USER CODE BEGIN RTOS_TIMERS */
+	/* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
+	/* USER CODE END RTOS_TIMERS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
+	/* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
+	/* USER CODE END RTOS_QUEUES */
 
-  /* Create the thread(s) */
-  /* definition and creation of displayTask */
-  osThreadStaticDef(displayTask, StartDisplayTask, osPriorityNormal, 0, 128, displayTaskBuffer, &displayTaskControlBlock);
-  displayTaskHandle = osThreadCreate(osThread(displayTask), NULL);
+	/* Create the thread(s) */
+	/* definition and creation of displayTask */
+	osThreadStaticDef(displayTask, StartDisplayTask, osPriorityNormal, 0, 128, displayTaskBuffer, &displayTaskControlBlock);
+	displayTaskHandle = osThreadCreate(osThread(displayTask), NULL);
 
-  /* definition and creation of controlTask */
-  osThreadStaticDef(controlTask, StartControlTask, osPriorityNormal, 0, 256, controTaskBuffer, &controTaskControlBlock);
-  controlTaskHandle = osThreadCreate(osThread(controlTask), NULL);
+	/* definition and creation of controlTask */
+	osThreadStaticDef(controlTask, StartControlTask, osPriorityNormal, 0, 256, controTaskBuffer, &controTaskControlBlock);
+	controlTaskHandle = osThreadCreate(osThread(controlTask), NULL);
 
-  /* definition and creation of keyScanTask */
-  osThreadStaticDef(keyScanTask, StartKeyScanTask, osPriorityNormal, 0, 64, keyScanTaskBuffer, &keyScanTaskControlBlock);
-  keyScanTaskHandle = osThreadCreate(osThread(keyScanTask), NULL);
+	/* definition and creation of keyScanTask */
+	osThreadStaticDef(keyScanTask, StartKeyScanTask, osPriorityNormal, 0, 64, keyScanTaskBuffer, &keyScanTaskControlBlock);
+	keyScanTaskHandle = osThreadCreate(osThread(keyScanTask), NULL);
 
-  /* definition and creation of temperature */
-  osThreadStaticDef(temperature, StartTemperature, osPriorityLow, 0, 64, temperatureBuffer, &temperatureControlBlock);
-  temperatureHandle = osThreadCreate(osThread(temperature), NULL);
+	/* definition and creation of temperature */
+	osThreadStaticDef(temperature, StartTemperature, osPriorityLow, 0, 64, temperatureBuffer, &temperatureControlBlock);
+	temperatureHandle = osThreadCreate(osThread(temperature), NULL);
 
-  /* definition and creation of saveMode */
-  osThreadStaticDef(saveMode, StartSaveMode, osPriorityLow, 0, 64, saveModeBuffer, &saveModeControlBlock);
-  saveModeHandle = osThreadCreate(osThread(saveMode), NULL);
+	/* definition and creation of saveMode */
+	osThreadStaticDef(saveMode, StartSaveMode, osPriorityLow, 0, 128, saveModeBuffer, &saveModeControlBlock);
+	saveModeHandle = osThreadCreate(osThread(saveMode), NULL);
 
-  /* USER CODE BEGIN RTOS_THREADS */
+	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
 	osThreadSuspend(displayTaskHandle);
 	//	osThreadSuspend(menuControlHandle);
 
-  /* USER CODE END RTOS_THREADS */
-
+	/* USER CODE END RTOS_THREADS */
 }
 
 /* USER CODE BEGIN Header_StartDisplayTask */
@@ -329,16 +329,16 @@ void MX_FREERTOS_Init(void) {
  * @retval None
  */
 /* USER CODE END Header_StartDisplayTask */
-void StartDisplayTask(void const * argument)
+void StartDisplayTask(void const *argument)
 {
-  /* USER CODE BEGIN StartDisplayTask */
+	/* USER CODE BEGIN StartDisplayTask */
 	/* Infinite loop */
 	float uSet = 0;
 	float vSet = 0;
 	float iSet = 0;
 	float uPresentDisplay = 0;
 	float iPresentDisplay = 0;
-	float temperatureDisplay[2] = {0,0};
+	float temperatureDisplay[2] = {0, 0};
 	for (;;)
 	{
 
@@ -369,14 +369,13 @@ void StartDisplayTask(void const * argument)
 			Lcd_float(&lcd, temperatureDisplay[0], 0);
 			Lcd_string(&lcd, " ");
 			Lcd_float(&lcd, temperatureDisplay[1], 0);
-			//Lcd_float(&lcd, iSet, 0);
+			// Lcd_float(&lcd, iSet, 0);
 		}
 		else
 		{
 			Lcd_string(&lcd, "V");
 			Lcd_float(&lcd, vSet, 1);
 		}
-
 		Lcd_cursor(&lcd, 1, 2);
 		Lcd_float(&lcd, uPresentDisplay, 1);
 
@@ -398,18 +397,10 @@ void StartDisplayTask(void const * argument)
 		{
 			Lcd_string(&lcd, "G");
 		}
-		else
-		{
-		//	Lcd_string(&lcd, " ");
-		}
 		Lcd_cursor(&lcd, 0, 15);
 		if (IS_WELDING_RUN)
 		{
 			Lcd_string(&lcd, "A");
-		}
-		else
-		{
-			//Lcd_string(&lcd, " ");
 		}
 		Lcd_cursor(&lcd, 1, 13);
 		if (IS_WIRE_RUN)
@@ -417,21 +408,16 @@ void StartDisplayTask(void const * argument)
 			Lcd_string(&lcd, "W");
 			if (IS_WIRE_DIR)
 			{
-				Lcd_string(&lcd, "U");
+				Lcd_string(&lcd, "D");
 			}
 			else
 			{
-				Lcd_string(&lcd, "D");
+				Lcd_string(&lcd, "U");
 			}
 		}
-		else
-		{
-			//Lcd_string(&lcd, "  ");
-		}
-
 		osDelay(100);
 	}
-  /* USER CODE END StartDisplayTask */
+	/* USER CODE END StartDisplayTask */
 }
 
 /* USER CODE BEGIN Header_StartControlTask */
@@ -441,9 +427,9 @@ void StartDisplayTask(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_StartControlTask */
-void StartControlTask(void const * argument)
+void StartControlTask(void const *argument)
 {
-  /* USER CODE BEGIN StartControlTask */
+	/* USER CODE BEGIN StartControlTask */
 
 	HAL_GPIO_WritePin(OUT_LCD_LED_GPIO_Port, OUT_LCD_LED_Pin, GPIO_PIN_SET);
 	Lcd_cursor(&lcd, 0, 5);
@@ -500,10 +486,10 @@ void StartControlTask(void const * argument)
 			WIRE_DIR((LD(keyPLC[WIREDOWN]) && LDI(cicle)) || LD(wireCicle));
 			WELDING_RUN(LD(weldingCicle));
 
-			//float uPresent1 = calibration((float)adc2Filter, U_Present_Code_Min.value, U_Present_Value_Min.value, U_Present_Code_Max.value, U_Present_Value_Max.value);
-			//U_Present = RCfilter(uPresent1, U_Present, 0.5);
-		//	float iPresent1 = calibration((float)adc3Filter, I_Present_Code_Min.value, I_Present_Value_Min.value, I_Present_Code_Max.value, I_Present_Value_Max.value);
-		//	I_Present = RCfilter(iPresent1, I_Present, 0.5);
+			// float uPresent1 = calibration((float)adc2Filter, U_Present_Code_Min.value, U_Present_Value_Min.value, U_Present_Code_Max.value, U_Present_Value_Max.value);
+			// U_Present = RCfilter(uPresent1, U_Present, 0.5);
+			//	float iPresent1 = calibration((float)adc3Filter, I_Present_Code_Min.value, I_Present_Value_Min.value, I_Present_Code_Max.value, I_Present_Value_Max.value);
+			//	I_Present = RCfilter(iPresent1, I_Present, 0.5);
 
 			uint16_t USetCode = (uint16_t)calibration(U_Set.value, U_Set_Value_Min.value, U_Set_Code_Min.value, U_Set_Value_Max.value, U_Set_Code_Max.value);
 			USetCode = rangeLimitInt(USetCode, SetCoderange.min, SetCoderange.max);
@@ -520,10 +506,16 @@ void StartControlTask(void const * argument)
 			uint16_t ISetCode = (uint16_t)calibration(I_Set.value, I_Set_Value_Min.value, I_Set_Code_Min.value, I_Set_Value_Max.value, I_Set_Code_Max.value);
 			ISetCode = rangeLimitInt(ISetCode, SetCoderange.min, SetCoderange.max);
 			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, ISetCode);
-
-			uint16_t VSetCode = (uint16_t)calibration(V_Set.value, V_Set_Value_Min.value, V_Set_Code_Min.value, V_Set_Value_Max.value, V_Set_Code_Max.value);
+			uint16_t VSetCode = 0;
+			if (wireCicle.state)
+			{
+				VSetCode = (uint16_t)calibration(V_Set.value, V_Set_Value_Min.value, V_Set_Code_Min.value, V_Set_Value_Max.value, V_Set_Code_Max.value);
+			}
+			else
+			{
+				VSetCode = (uint16_t)calibration(V_Manual.value, V_Set_Value_Min.value, V_Set_Code_Min.value, V_Set_Value_Max.value, V_Set_Code_Max.value);
+			}
 			VSetCode = rangeLimitInt(VSetCode, SetCoderange.min, SetCoderange.max);
-
 			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, VSetCode);
 
 			if (LDP(keyPLC[MENU]))
@@ -646,7 +638,7 @@ void StartControlTask(void const * argument)
 		weldingCicle.oldState = weldingCicle.state;
 		osDelay(10);
 	}
-  /* USER CODE END StartControlTask */
+	/* USER CODE END StartControlTask */
 }
 
 /* USER CODE BEGIN Header_StartKeyScanTask */
@@ -656,9 +648,9 @@ void StartControlTask(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_StartKeyScanTask */
-void StartKeyScanTask(void const * argument)
+void StartKeyScanTask(void const *argument)
 {
-  /* USER CODE BEGIN StartKeyScanTask */
+	/* USER CODE BEGIN StartKeyScanTask */
 
 	/* Infinite loop */
 	for (;;)
@@ -671,7 +663,7 @@ void StartKeyScanTask(void const * argument)
 		key[START] = !HAL_GPIO_ReadPin(IN_Start_Btn_GPIO_Port, IN_Start_Btn_Pin);
 		osDelay(70);
 	}
-  /* USER CODE END StartKeyScanTask */
+	/* USER CODE END StartKeyScanTask */
 }
 
 /* USER CODE BEGIN Header_StartTemperature */
@@ -681,27 +673,27 @@ void StartKeyScanTask(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_StartTemperature */
-void StartTemperature(void const * argument)
+void StartTemperature(void const *argument)
 {
-  /* USER CODE BEGIN StartTemperature */
+	/* USER CODE BEGIN StartTemperature */
 	osDelay(1000);
 	/* Infinite loop */
 	for (;;)
 	{
-	//	OW_Measure();
-	//	osDelay(750);
-	//	int32_t temp0 = OW_Read_Sensors(0);
-	//	osDelay(100);
-	//    OW_Measure();
-	//	osDelay(750);
-	//	int32_t temp1 = OW_Read_Sensors(1);
-	//	osMutexWait(temperatureMutexHandle, osWaitForever);
-	//	temperature[0] = temp1;
-	//	temperature[1]= temp0;
-	//	osMutexRelease(temperatureMutexHandle);
+			OW_Measure();
+			osDelay(750);
+			int32_t temp0 = OW_Read_Sensors(0);
+			osDelay(100);
+		    OW_Measure();
+			osDelay(750);
+			int32_t temp1 = OW_Read_Sensors(1);
+			osMutexWait(temperatureMutexHandle, osWaitForever);
+			temperature[0] = temp1;
+			temperature[1]= temp0;
+			osMutexRelease(temperatureMutexHandle);
 		osDelay(10000);
 	}
-  /* USER CODE END StartTemperature */
+	/* USER CODE END StartTemperature */
 }
 
 /* USER CODE BEGIN Header_StartSaveMode */
@@ -711,9 +703,9 @@ void StartTemperature(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_StartSaveMode */
-void StartSaveMode(void const * argument)
+void StartSaveMode(void const *argument)
 {
-  /* USER CODE BEGIN StartSaveMode */
+	/* USER CODE BEGIN StartSaveMode */
 	/* Infinite loop */
 	float uSet = 0;
 	float uSetOld = 0;
@@ -748,7 +740,7 @@ void StartSaveMode(void const * argument)
 		uSetOld = uSet;
 		vSetOld = vSet;
 	}
-  /* USER CODE END StartSaveMode */
+	/* USER CODE END StartSaveMode */
 }
 
 /* Private application code --------------------------------------------------*/
@@ -788,18 +780,22 @@ void loadSettings(void)
 void saveMode(void)
 {
 	float writePar[] = {0.0, 0.0, 0.0, 0.0};
+	osMutexWait(valueSetMutexHandle, osWaitForever);
 	writePar[0] = U_Set.value;
 	writePar[1] = V_Set.value;
+	osMutexRelease(valueSetMutexHandle);
 	writeEeprom(192, writePar, sizeof(writePar));
 }
 void loadMode(void)
 {
 	float readPar[] = {0.0, 0.0, 0.0, 0.0};
 	if (readEeprom(192, readPar, sizeof(readPar)) == HAL_OK)
-		{
-			U_Set.value=readPar[0];
-			V_Set.value=readPar[1];
-		}
+	{
+		osMutexWait(valueSetMutexHandle, osWaitForever);
+		U_Set.value = readPar[0];
+		V_Set.value = readPar[1];
+		osMutexRelease(valueSetMutexHandle);
+	}
 }
 void menuDisplayUpdate(void)
 {
@@ -845,4 +841,3 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 	}
 }
 /* USER CODE END Application */
-
