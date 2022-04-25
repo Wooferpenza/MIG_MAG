@@ -168,7 +168,7 @@ uint8_t OW_Send(uint8_t sendReset, uint8_t *command, uint8_t cLen,
 		while (HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY)
 		{
 			// #ifdef OW_GIVE_TICK_RTOS
-			 		//	taskYIELD();
+			 			taskYIELD();
 			// #endif
 		}
 		

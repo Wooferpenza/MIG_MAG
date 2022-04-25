@@ -468,8 +468,8 @@ void StartControlTask(void const *argument)
 			inc(pVar, encoderCount, 1.0);
 			osMutexRelease(valueSetMutexHandle);
 			osMutexWait(valuePresentMutexHandle, osWaitForever);
-			U_Present = RCfilter(uPresent, U_Present, 0.998);
-			I_Present = RCfilter(iPresent, I_Present, 0.998);
+			U_Present = RCfilter(uPresent, U_Present, 0.95);
+			I_Present = RCfilter(iPresent, I_Present, 0.95);
 			osMutexRelease(valuePresentMutexHandle);
 
 			TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0);
@@ -683,7 +683,7 @@ void StartTemperature(void const *argument)
 			OW_Measure();
 			osDelay(750);
 			int32_t temp0 = OW_Read_Sensors(0);
-			osDelay(100);
+			osDelay(1000);
 		    OW_Measure();
 			osDelay(750);
 			int32_t temp1 = OW_Read_Sensors(1);
@@ -691,7 +691,7 @@ void StartTemperature(void const *argument)
 			temperature[0] = temp1;
 			temperature[1]= temp0;
 			osMutexRelease(temperatureMutexHandle);
-		osDelay(10000);
+		osDelay(1000);
 	}
 	/* USER CODE END StartTemperature */
 }
