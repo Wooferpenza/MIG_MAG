@@ -111,9 +111,9 @@ parameter_t V_Manual_Marsh = {1.0, &Vrange, 0.1, "V", "mm/min"};
 float U_Present = 0;
 float I_Present = 0;
 // Калибровочные коэффициенты
-parameter_t U_Set_Code_Min = {755.0, &SetCoderange, 1.0, "USetCodeMin", ""};
+parameter_t U_Set_Code_Min = {840.0, &SetCoderange, 1.0, "USetCodeMin", ""};
 parameter_t U_Set_Value_Min = {15.0, &Urange, 0.1, "USetValueMin", "V"};
-parameter_t U_Set_Code_Max = {1840.0, &SetCoderange, 1.0, "USetCodeMax", ""};
+parameter_t U_Set_Code_Max = {2000.0, &SetCoderange, 1.0, "USetCodeMax", ""};
 parameter_t U_Set_Value_Max = {30.0, &Urange, 0.1, "USetValueMax", "V"};
 
 parameter_t I_Set_Code_Min = {1850.0, &SetCoderange, 1.0, "ISetCodeMin", ""};
@@ -126,15 +126,15 @@ parameter_t V_Set_Value_Min = {2.2, &Vrange, 0.1, "VSetValueMin", "mm/min"};
 parameter_t V_Set_Code_Max = {3300.0, &SetCoderange, 1.0, "VSetCodeMax", ""};
 parameter_t V_Set_Value_Max = {8.7, &Vrange, 0.1, "VSetValueMax", "mm/min"};
 
-parameter_t U_Present_Code_Min = {0.0, &PresCoderange, 1.0, "UPresentCodeMin", ""};
-parameter_t U_Present_Value_Min = {0.0, &Urange, 0.1, "UPresentValMin", "V"};
-parameter_t U_Present_Code_Max = {0.0, &PresCoderange, 1.0, "UPresentCodeMax", ""};
-parameter_t U_Present_Value_Max = {0.0, &Urange, 0.1, "UPresentValMax", "V"};
+parameter_t U_Present_Code_Min = {870.0, &PresCoderange, 1.0, "UPresentCodeMin", ""};
+parameter_t U_Present_Value_Min = {15.0, &Urange, 0.1, "UPresentValMin", "V"};
+parameter_t U_Present_Code_Max = {1700.0, &PresCoderange, 1.0, "UPresentCodeMax", ""};
+parameter_t U_Present_Value_Max = {30.0, &Urange, 0.1, "UPresentValMax", "V"}; 
 
-parameter_t I_Present_Code_Min = {0.0, &PresCoderange, 1.0, "IPresentCodeMin", ""};
-parameter_t I_Present_Value_Min = {0.0, &Irange, 1.0, "IPresentValMin", "A"};
-parameter_t I_Present_Code_Max = {0.0, &PresCoderange, 1.0, "IPresentCodeMax", ""};
-parameter_t I_Present_Value_Max = {0.0, &Irange, 1.0, "IPresentValMax", "A"};
+parameter_t I_Present_Code_Min = {400.0, &PresCoderange, 1.0, "IPresentCodeMin", ""};
+parameter_t I_Present_Value_Min = {40.0, &Irange, 1.0, "IPresentValMin", "A"};
+parameter_t I_Present_Code_Max = {2750.0, &PresCoderange, 1.0, "IPresentCodeMax", ""};
+parameter_t I_Present_Value_Max = {215.0, &Irange, 1.0, "IPresentValMax", "A"};
 
 parameter_t *pVar = &U_Set;
 parameter_t *pEditValue;
@@ -468,8 +468,8 @@ void StartControlTask(void const *argument)
 			inc(pVar, encoderCount, 1.0);
 			osMutexRelease(valueSetMutexHandle);
 			osMutexWait(valuePresentMutexHandle, osWaitForever);
-			U_Present = RCfilter(uPresent, U_Present, 0.95);
-			I_Present = RCfilter(iPresent, I_Present, 0.95);
+			U_Present = RCfilter(uPresent, U_Present, 0.98);
+			I_Present = RCfilter(iPresent, I_Present, 0.98);
 			osMutexRelease(valuePresentMutexHandle);
 
 			TMR(&gasAfter_T, LDI(weldingCicle), Gas_After.value * 1000.0);
@@ -518,7 +518,7 @@ void StartControlTask(void const *argument)
 			VSetCode = rangeLimitInt(VSetCode, SetCoderange.min, SetCoderange.max);
 			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, VSetCode);
 
-			if (LDP(keyPLC[MENU]))
+			if (LDP(keyPLC[MENU])&&LDI(cicle))
 			{
 				menuMode.state = true;
 				Menu_Navigate(&Menu_1);
